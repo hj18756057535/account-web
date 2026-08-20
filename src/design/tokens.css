@@ -1,0 +1,15 @@
+:root {
+  --color-brand: #2563eb;
+  --color-accent: #0891b2;
+  --color-canvas: #f5f8ff;
+  --color-surface: #fff;
+  --color-text: #172033;
+  --color-text-muted: #5d6b85;
+  --color-border: #dbe5f5;
+  --color-success: #15803d;
+  --radius-card: 0.875rem;
+  --space-2: 0.5rem;
+  --space-4: 1rem;
+  --space-8: 2rem;
+  --shadow-card: 0 1rem 2.5rem rgb(37 99 235 / 10%);
+}
