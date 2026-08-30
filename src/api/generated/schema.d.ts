@@ -33,7 +33,8 @@ export interface paths {
         /** 分页查询全局用户 */
         get: operations["listUsers"];
         put?: never;
-        post?: never;
+        /** 创建全局用户 */
+        post: operations["createUser"];
         delete?: never;
         options?: never;
         head?: never;
@@ -49,8 +50,60 @@ export interface paths {
         };
         /** 查询全局用户详情 */
         get: operations["getUser"];
-        put?: never;
+        /** 修改全局用户基本资料 */
+        put: operations["updateUser"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{userId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 启用或禁用全局用户 */
+        put: operations["changeUserStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/openapi/sso/tickets/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 业务系统使用一次性 Code 兑换 Account 用户快照 */
+        post: operations["exchangeSsoTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/openapi/admin-tickets/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 业务系统验证一次性管理 Ticket */
+        post: operations["verifyAdminTicket"];
         delete?: never;
         options?: never;
         head?: never;
@@ -69,7 +122,7 @@ export interface components {
             authenticated: boolean;
             user: components["schemas"]["SessionUser"] | null;
             roles: ("ACCOUNT_ADMIN" | "ACCOUNT_AUDITOR")[];
-            capabilities: "users:read"[];
+            capabilities: ("users:read" | "users:write")[];
             csrfToken: string;
         };
         SessionUser: {
@@ -86,10 +139,34 @@ export interface components {
             name: string;
             phone: string;
             status: components["schemas"]["UserStatus"];
+            /** Format: int64 */
+            version: number;
             /** Format: date-time */
             createdAt?: string | null;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        CreateUserRequest: {
+            account: string;
+            /** Format: email */
+            email: string;
+            name: string;
+            phone: string;
+        };
+        UpdateUserRequest: {
+            account: string;
+            /** Format: email */
+            email: string;
+            name: string;
+            phone: string;
+            /** Format: int64 */
+            version: number;
+        };
+        ChangeUserStatusRequest: {
+            status: components["schemas"]["UserStatus"];
+            /** Format: int64 */
+            version: number;
+            reason: string;
         };
         UserPageResponse: {
             items: components["schemas"]["UserResponse"][];
@@ -106,6 +183,26 @@ export interface components {
             fieldErrors?: {
                 [key: string]: string;
             };
+        };
+        SsoTicketExchangeRequest: {
+            appCode: string;
+            code: string;
+        };
+        SsoTicketExchangeResponse: {
+            externalUserId: string;
+            account: string;
+            email?: string | null;
+            name: string;
+            phone?: string | null;
+            tenantCode: string;
+        };
+        AdminTicketVerifyRequest: {
+            appCode: string;
+            ticket: string;
+        };
+        AdminTicketVerifyResponse: {
+            appCode: string;
+            userId: string;
         };
     };
     responses: {
@@ -145,10 +242,25 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
+        /** @description 账号重复、资源版本冲突或幂等键冲突 */
+        Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorResponse"];
+            };
+        };
     };
     parameters: {
+        IntegrationAppCode: string;
+        IntegrationTimestamp: string;
+        IntegrationNonce: string;
+        IntegrationSignature: string;
         /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
         CsrfToken: string;
+        /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: never;
@@ -258,6 +370,39 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
         };
     };
+    createUser: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description 用户已创建；重复幂等请求复用首次响应 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     getUser: {
         parameters: {
             query?: never;
@@ -281,6 +426,138 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description 修改后的用户；版本单调递增 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    changeUserStatus: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeUserStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description 状态已更新；不会在本切片触发业务系统同步 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    exchangeSsoTicket: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Account-App-Code": components["parameters"]["IntegrationAppCode"];
+                "X-Account-Timestamp": components["parameters"]["IntegrationTimestamp"];
+                "X-Account-Nonce": components["parameters"]["IntegrationNonce"];
+                "X-Account-Signature": components["parameters"]["IntegrationSignature"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SsoTicketExchangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Ticket 已原子消费 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SsoTicketExchangeResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    verifyAdminTicket: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Account-App-Code": components["parameters"]["IntegrationAppCode"];
+                "X-Account-Timestamp": components["parameters"]["IntegrationTimestamp"];
+                "X-Account-Nonce": components["parameters"]["IntegrationNonce"];
+                "X-Account-Signature": components["parameters"]["IntegrationSignature"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminTicketVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Ticket 已验证并原子消费 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTicketVerifyResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
 }

@@ -82,7 +82,12 @@ onMounted(() => loadUsers(1))
         <h1 id="users-title" class="page-title">{{ copy.title }}</h1>
         <p class="page-description">{{ copy.description }}</p>
       </div>
-      <span class="total-pill">{{ totalLabel(result.total) }}</span>
+      <div class="heading-actions">
+        <span class="total-pill">{{ totalLabel(result.total) }}</span>
+        <RouterLink v-if="sessionStore.hasCapability('users:write')" :to="{ name: 'user-create' }">
+          <ElButton type="primary">{{ zhCN.common.create }}</ElButton>
+        </RouterLink>
+      </div>
     </header>
 
     <form class="filter-panel" @submit.prevent="loadUsers(1)">
@@ -221,6 +226,12 @@ onMounted(() => loadUsers(1))
   white-space: nowrap;
 }
 
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .filter-panel {
   display: grid;
   grid-template-columns: minmax(15rem, 1.4fr) minmax(9rem, 0.55fr) minmax(9rem, 0.55fr) auto;
@@ -324,6 +335,10 @@ onMounted(() => loadUsers(1))
   .pagination-bar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .heading-actions {
+    flex-wrap: wrap;
   }
 
   .filter-panel {

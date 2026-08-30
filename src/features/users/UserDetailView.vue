@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElSkeleton, ElTag } from 'element-plus'
+import { ElAlert, ElButton, ElInput, ElMessageBox, ElSkeleton, ElTag } from 'element-plus'
 
-import { getUser, type UserResponse } from '@/api/account'
+import { changeUserStatus, getUser, type UserResponse } from '@/api/account'
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
@@ -17,6 +17,11 @@ const loading = ref(true)
 const notFound = ref(false)
 const failed = ref(false)
 const user = ref<UserResponse | null>(null)
+const statusReason = ref('')
+const statusError = ref('')
+const changingStatus = ref(false)
+const statusKey = ref('')
+const statusChanged = ref(false)
 
 async function loadUser() {
   loading.value = true
@@ -49,6 +54,67 @@ function formatDate(value?: string | null) {
   }).format(new Date(value))
 }
 
+function resetStatusAttempt() {
+  statusError.value = ''
+  statusKey.value = ''
+  statusChanged.value = false
+}
+
+async function changeStatus() {
+  if (!user.value || changingStatus.value) return
+  if (!statusReason.value.trim()) {
+    statusError.value = copy.statusReasonRequired
+    return
+  }
+  const targetStatus = user.value.status === 'enabled' ? 'disabled' : 'enabled'
+  try {
+    await ElMessageBox.confirm(
+      targetStatus === 'disabled' ? copy.disableConfirm : copy.enableConfirm,
+      zhCN.common.confirm,
+      { confirmButtonText: zhCN.common.confirm, cancelButtonText: zhCN.common.cancel },
+    )
+  } catch {
+    return
+  }
+
+  changingStatus.value = true
+  statusError.value = ''
+  statusKey.value ||= crypto.randomUUID()
+  try {
+    user.value = await changeUserStatus(
+      user.value.id,
+      { status: targetStatus, version: user.value.version, reason: statusReason.value.trim() },
+      sessionStore.csrfToken,
+      statusKey.value,
+    )
+    statusReason.value = ''
+    statusKey.value = ''
+    statusChanged.value = true
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      sessionStore.expire()
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+    if (error instanceof ApiError && error.status === 403) {
+      await router.replace({ name: 'forbidden' })
+      return
+    }
+    if (
+      error instanceof ApiError &&
+      ['CURRENT_ADMIN_PROTECTED', 'LAST_ADMIN_PROTECTED'].includes(error.code)
+    ) {
+      statusError.value = copy.adminProtected
+    } else if (error instanceof ApiError && error.code === 'RESOURCE_VERSION_CONFLICT') {
+      statusError.value = copy.versionConflict
+    } else {
+      statusError.value = copy.statusFailed
+    }
+  } finally {
+    changingStatus.value = false
+  }
+}
+
 onMounted(loadUser)
 </script>
 
@@ -77,6 +143,13 @@ onMounted(loadUser)
     </StatePanel>
 
     <template v-else-if="user">
+      <ElAlert
+        v-if="route.query.saved === '1'"
+        :title="copy.saved"
+        type="success"
+        show-icon
+        :closable="false"
+      />
       <header class="detail-heading">
         <div class="detail-avatar" aria-hidden="true">{{ user.name.slice(0, 1) }}</div>
         <div>
@@ -91,6 +164,13 @@ onMounted(loadUser)
         >
           {{ user.status === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled }}
         </ElTag>
+        <RouterLink
+          v-if="sessionStore.hasCapability('users:write')"
+          class="detail-edit"
+          :to="{ name: 'user-edit', params: { userId: user.id } }"
+        >
+          <ElButton type="primary" plain>{{ zhCN.common.edit }}</ElButton>
+        </RouterLink>
       </header>
 
       <div class="detail-grid">
@@ -120,7 +200,37 @@ onMounted(loadUser)
           <span>{{ copy.updatedAt }}</span>
           <strong>{{ formatDate(user.updatedAt) }}</strong>
         </article>
+        <article>
+          <span>{{ copy.version }}</span>
+          <strong>{{ user.version }}</strong>
+        </article>
       </div>
+
+      <section v-if="sessionStore.hasCapability('users:write')" class="status-card">
+        <div>
+          <h2>{{ copy.statusActionTitle }}</h2>
+          <p>{{ copy.statusActionDescription }}</p>
+        </div>
+        <label>
+          <span>{{ copy.statusReason }}</span>
+          <ElInput
+            v-model="statusReason"
+            :placeholder="copy.statusReasonPlaceholder"
+            maxlength="255"
+            show-word-limit
+            @input="resetStatusAttempt"
+          />
+        </label>
+        <p v-if="statusError" class="status-error" role="alert">{{ statusError }}</p>
+        <p v-if="statusChanged" class="status-success" role="status">{{ copy.statusChanged }}</p>
+        <ElButton
+          :type="user.status === 'enabled' ? 'danger' : 'primary'"
+          :loading="changingStatus"
+          @click="changeStatus"
+        >
+          {{ user.status === 'enabled' ? copy.disable : copy.enable }}
+        </ElButton>
+      </section>
     </template>
   </section>
 </template>
@@ -147,6 +257,10 @@ onMounted(loadUser)
   border-radius: var(--radius-panel);
   background: linear-gradient(145deg, #fff, var(--color-brand-soft));
   box-shadow: var(--shadow-card);
+}
+
+.detail-edit {
+  grid-column: 3;
 }
 
 .detail-avatar {
@@ -200,6 +314,47 @@ onMounted(loadUser)
   overflow-wrap: anywhere;
 }
 
+.status-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 1fr) auto;
+  align-items: end;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.status-card h2,
+.status-card p {
+  margin: 0;
+}
+
+.status-card h2 {
+  font-size: 1rem;
+}
+
+.status-card p,
+.status-card label span {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.status-card label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.status-card .status-error {
+  grid-column: 1 / -1;
+  color: var(--color-danger);
+}
+
+.status-card .status-success {
+  grid-column: 1 / -1;
+  color: var(--color-success);
+}
+
 @media (width <= 42rem) {
   .detail-heading {
     grid-template-columns: auto minmax(0, 1fr);
@@ -210,7 +365,15 @@ onMounted(loadUser)
     width: fit-content;
   }
 
+  .detail-edit {
+    grid-column: auto;
+  }
+
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .status-card {
     grid-template-columns: 1fr;
   }
 }

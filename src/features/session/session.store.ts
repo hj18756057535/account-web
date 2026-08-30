@@ -17,6 +17,7 @@ export const useSessionStore = defineStore('session', () => {
 
   const authenticated = computed(() => session.value?.authenticated === true)
   const currentUser = computed(() => session.value?.user ?? null)
+  const csrfToken = computed(() => session.value?.csrfToken ?? '')
 
   async function initialize(force = false) {
     if (initialized.value && !force) return
@@ -56,7 +57,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function hasCapability(capability: string) {
-    return session.value?.capabilities.includes(capability as 'users:read') === true
+    return session.value?.capabilities.some((value) => value === capability) === true
   }
 
   function expire() {
@@ -71,6 +72,7 @@ export const useSessionStore = defineStore('session', () => {
     connectionError,
     authenticated,
     currentUser,
+    csrfToken,
     initialize,
     login,
     logout,

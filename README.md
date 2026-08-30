@@ -1,10 +1,10 @@
 # account-web
 
-Account Center 独立管理前端。当前只建立 T-001 工程基线，业务页面和 API 集成按批准的纵向切片逐步交付。
+Account Center 独立管理前端。当前已交付登录态、全局用户列表/详情，以及受 CSRF、幂等键和资源版本保护的用户创建、编辑、启用/禁用能力；应用管理、审计与更多运营能力继续按批准的纵向切片交付。
 
 ## 技术基线
 
-- Node.js 24 LTS（`.nvmrc` 与 `.tool-versions` 固定本机验证版本）
+- Node.js 24 LTS（`.nvmrc`、`.tool-versions` 与 `.vfox.toml` 固定本机验证版本）
 - pnpm 11.19.0 与 frozen lockfile
 - Vue 3、TypeScript strict、Vite、Vue Router、Pinia、Element Plus
 - Vitest、Playwright、ESLint、Oxlint、Stylelint、Prettier

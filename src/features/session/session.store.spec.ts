@@ -27,7 +27,7 @@ const authenticatedSession: SessionResponse = {
   authenticated: true,
   user: { id: 'synthetic-admin', account: 'admin', name: '测试管理员' },
   roles: ['ACCOUNT_ADMIN'],
-  capabilities: ['users:read'],
+  capabilities: ['users:read', 'users:write'],
   csrfToken: 'csrf-token-for-test-session',
 }
 
@@ -53,6 +53,7 @@ describe('session store', () => {
     )
     expect(store.authenticated).toBe(true)
     expect(store.hasCapability('users:read')).toBe(true)
+    expect(store.hasCapability('users:write')).toBe(true)
     expect(localStorage).toHaveLength(0)
     expect(sessionStorage).toHaveLength(0)
   })

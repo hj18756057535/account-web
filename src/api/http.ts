@@ -24,11 +24,12 @@ export class ApiError extends Error {
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
   csrfToken?: string
+  idempotencyKey?: string
   timeoutMs?: number
 }
 
 export async function requestJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
-  const { body, csrfToken, timeoutMs, ...requestOptions } = options
+  const { body, csrfToken, idempotencyKey, timeoutMs, ...requestOptions } = options
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs ?? 10_000)
   const headers = new Headers(requestOptions.headers)
@@ -38,6 +39,9 @@ export async function requestJson<T>(url: string, options: RequestOptions = {}):
   }
   if (csrfToken) {
     headers.set('X-CSRF-Token', csrfToken)
+  }
+  if (idempotencyKey) {
+    headers.set('Idempotency-Key', idempotencyKey)
   }
 
   try {

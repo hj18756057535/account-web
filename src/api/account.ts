@@ -6,6 +6,9 @@ export type SessionResponse = components['schemas']['SessionResponse']
 export type UserResponse = components['schemas']['UserResponse']
 export type UserPageResponse = components['schemas']['UserPageResponse']
 export type UserQuery = NonNullable<operations['listUsers']['parameters']['query']>
+export type CreateUserRequest = components['schemas']['CreateUserRequest']
+export type UpdateUserRequest = components['schemas']['UpdateUserRequest']
+export type ChangeUserStatusRequest = components['schemas']['ChangeUserStatusRequest']
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
 
@@ -40,4 +43,45 @@ export function listUsers(query: UserQuery): Promise<UserPageResponse> {
 
 export function getUser(userId: string): Promise<UserResponse> {
   return requestJson(`${apiBase}/users/${encodeURIComponent(userId)}`)
+}
+
+export function createUser(
+  request: CreateUserRequest,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<UserResponse> {
+  return requestJson(`${apiBase}/users`, {
+    method: 'POST',
+    body: request,
+    csrfToken,
+    idempotencyKey,
+  })
+}
+
+export function updateUser(
+  userId: string,
+  request: UpdateUserRequest,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<UserResponse> {
+  return requestJson(`${apiBase}/users/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    body: request,
+    csrfToken,
+    idempotencyKey,
+  })
+}
+
+export function changeUserStatus(
+  userId: string,
+  request: ChangeUserStatusRequest,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<UserResponse> {
+  return requestJson(`${apiBase}/users/${encodeURIComponent(userId)}/status`, {
+    method: 'PUT',
+    body: request,
+    csrfToken,
+    idempotencyKey,
+  })
 }

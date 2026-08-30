@@ -24,6 +24,18 @@ const router = createRouter({
           meta: { requiresAuth: true, capability: 'users:read' },
         },
         {
+          path: 'users/new',
+          name: 'user-create',
+          component: () => import('@/features/users/UserFormView.vue'),
+          meta: { requiresAuth: true, capability: 'users:write' },
+        },
+        {
+          path: 'users/:userId/edit',
+          name: 'user-edit',
+          component: () => import('@/features/users/UserFormView.vue'),
+          meta: { requiresAuth: true, capability: 'users:write' },
+        },
+        {
           path: 'users/:userId',
           name: 'user-detail',
           component: () => import('@/features/users/UserDetailView.vue'),
