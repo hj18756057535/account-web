@@ -1,10 +1,44 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { setLocale } from '@/locales'
 
-import { changeUserApplicationAccess, createApplication, createUser } from './account'
+import {
+  changeUserApplicationAccess,
+  createApplication,
+  createUser,
+  getAuditEvent,
+  listAuditEvents,
+} from './account'
 
 describe('account write client', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    setLocale('zh-CN')
+  })
+
+  it('encodes exact audit filters and detail identifiers without write headers', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      return new Response(JSON.stringify({ items: [], page: 2, size: 20, total: 0 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    setLocale('en-US')
+    await listAuditEvents({ page: 2, size: 20, operatorId: '', traceId: 'a&b /中文' })
+    setLocale('zh-CN')
+    await getAuditEvent('event/a b')
+
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const parsed = new URL(url, 'https://account.example.test')
+    expect(parsed.pathname).toBe('/api/audit-events')
+    expect(parsed.searchParams.get('traceId')).toBe('a&b /中文')
+    expect(parsed.searchParams.get('page')).toBe('2')
+    expect(parsed.searchParams.has('operatorId')).toBe(false)
+    expect(new Headers(options.headers).has('Idempotency-Key')).toBe(false)
+    expect(new Headers(options.headers).get('Accept-Language')).toBe('en-US')
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('Accept-Language')).toBe('zh-CN')
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/audit-events/event%2Fa%20b')
   })
 
   it('sends csrf and idempotency headers with a create request', async () => {

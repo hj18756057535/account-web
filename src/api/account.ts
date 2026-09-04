@@ -20,6 +20,22 @@ export type ChangeApplicationAccessRequest = components['schemas']['ChangeApplic
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
 
+export type AuditEventResponse = components['schemas']['AuditEventResponse']
+export type AuditEventPageResponse = components['schemas']['AuditEventPageResponse']
+export type AuditEventQuery = NonNullable<operations['listAuditEvents']['parameters']['query']>
+
+export function listAuditEvents(query: AuditEventQuery = {}): Promise<AuditEventPageResponse> {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') search.set(key, String(value))
+  }
+  return requestJson(`${apiBase}/audit-events${search.size ? `?${search}` : ''}`)
+}
+
+export function getAuditEvent(id: string): Promise<AuditEventResponse> {
+  return requestJson(`${apiBase}/audit-events/${encodeURIComponent(id)}`)
+}
+
 export function getSession(): Promise<SessionResponse> {
   return requestJson(`${apiBase}/session`)
 }

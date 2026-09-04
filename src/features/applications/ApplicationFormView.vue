@@ -20,12 +20,12 @@ import {
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { localizeFeedback, messages } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
-const copy = zhCN.applications
+const copy = messages.applications
 const editing = computed(() => typeof route.params.appCode === 'string')
 const loading = ref(editing.value)
 const loadFailed = ref(false)
@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
           : { name: 'applications' }
       "
     >
-      ← {{ zhCN.common.back }}
+      ← {{ messages.common.back }}
     </RouterLink>
     <header>
       <p class="page-eyebrow">{{ copy.eyebrow }}</p>
@@ -248,11 +248,11 @@ onBeforeUnmount(() => {
     <StatePanel
       v-else-if="loadFailed"
       :title="copy.loadFailed"
-      :description="zhCN.errors.generic"
+      :description="messages.errors.generic"
       tone="danger"
     >
       <template #actions
-        ><ElButton @click="loadApplication">{{ zhCN.common.retry }}</ElButton></template
+        ><ElButton @click="loadApplication">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
     <StatePanel
@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
       tone="warning"
     >
       <template #actions
-        ><ElButton @click="loadApplication">{{ zhCN.common.retry }}</ElButton></template
+        ><ElButton @click="loadApplication">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
 
@@ -270,36 +270,42 @@ onBeforeUnmount(() => {
       <label>
         <span>{{ copy.appCode }}</span>
         <ElInput v-model="form.appCode" :disabled="editing" maxlength="64" />
-        <small v-if="fieldErrors.appCode" role="alert">{{ fieldErrors.appCode }}</small>
+        <small v-if="fieldErrors.appCode" role="alert">{{
+          localizeFeedback(fieldErrors.appCode)
+        }}</small>
       </label>
       <label>
         <span>{{ copy.name }}</span>
         <ElInput v-model="form.name" maxlength="128" />
-        <small v-if="fieldErrors.name" role="alert">{{ fieldErrors.name }}</small>
+        <small v-if="fieldErrors.name" role="alert">{{ localizeFeedback(fieldErrors.name) }}</small>
       </label>
       <label class="wide-field">
         <span>{{ copy.entryUrl }}</span>
         <ElInput v-model="form.entryUrl" />
-        <small v-if="fieldErrors.entryUrl" role="alert">{{ fieldErrors.entryUrl }}</small>
+        <small v-if="fieldErrors.entryUrl" role="alert">{{
+          localizeFeedback(fieldErrors.entryUrl)
+        }}</small>
       </label>
       <label class="wide-field">
         <span>{{ copy.ssoCallbackUrl }}</span>
         <ElInput v-model="form.ssoCallbackUrl" />
         <small v-if="fieldErrors.ssoCallbackUrl" role="alert">{{
-          fieldErrors.ssoCallbackUrl
+          localizeFeedback(fieldErrors.ssoCallbackUrl)
         }}</small>
       </label>
       <label class="wide-field">
         <span>{{ copy.permissionIframeUrl }}</span>
         <ElInput v-model="form.permissionIframeUrl" />
         <small v-if="fieldErrors.permissionIframeUrl" role="alert">{{
-          fieldErrors.permissionIframeUrl
+          localizeFeedback(fieldErrors.permissionIframeUrl)
         }}</small>
       </label>
       <label class="wide-field">
         <span>{{ copy.notifyBaseUrl }}</span>
         <ElInput v-model="form.notifyBaseUrl" />
-        <small v-if="fieldErrors.notifyBaseUrl" role="alert">{{ fieldErrors.notifyBaseUrl }}</small>
+        <small v-if="fieldErrors.notifyBaseUrl" role="alert">{{
+          localizeFeedback(fieldErrors.notifyBaseUrl)
+        }}</small>
       </label>
       <label>
         <span>{{ copy.defaultTenantCode }}</span>
@@ -313,7 +319,7 @@ onBeforeUnmount(() => {
           <ElCheckbox value="user_sync" border>{{ copy.protocolUserSync }}</ElCheckbox>
         </ElCheckboxGroup>
         <small v-if="fieldErrors.protocolCapabilities" role="alert">{{
-          fieldErrors.protocolCapabilities
+          localizeFeedback(fieldErrors.protocolCapabilities)
         }}</small>
       </fieldset>
       <p v-if="failed && !conflict" class="form-error" role="alert">{{ copy.saveFailed }}</p>
@@ -325,10 +331,10 @@ onBeforeUnmount(() => {
               : { name: 'applications' }
           "
         >
-          <ElButton>{{ zhCN.common.cancel }}</ElButton>
+          <ElButton>{{ messages.common.cancel }}</ElButton>
         </RouterLink>
         <ElButton type="primary" native-type="submit" :loading="submitting">
-          {{ submitting ? zhCN.common.saving : zhCN.common.save }}
+          {{ submitting ? messages.common.saving : messages.common.save }}
         </ElButton>
       </footer>
     </form>
@@ -343,8 +349,8 @@ onBeforeUnmount(() => {
       <p>{{ copy.secretOnceDescription }}</p>
       <ElInput :model-value="oneTimeSecret" readonly type="textarea" :rows="3" />
       <template #footer>
-        <ElButton @click="copySecret">{{ zhCN.common.copy }}</ElButton>
-        <ElButton type="primary" @click="closeSecret">{{ zhCN.common.confirm }}</ElButton>
+        <ElButton @click="copySecret">{{ messages.common.copy }}</ElButton>
+        <ElButton type="primary" @click="closeSecret">{{ messages.common.confirm }}</ElButton>
       </template>
     </ElDialog>
   </section>

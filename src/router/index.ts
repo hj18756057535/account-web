@@ -71,6 +71,12 @@ const router = createRouter({
           component: () => import('@/components/ForbiddenView.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'audit-events',
+          name: 'audit-events',
+          component: () => import('@/features/audit/AuditEventsView.vue'),
+          meta: { requiresAuth: true, capability: 'audit:read' },
+        },
       ],
     },
     {

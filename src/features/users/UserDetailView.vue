@@ -8,12 +8,12 @@ import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import UserApplicationAccess from '@/features/applications/UserApplicationAccess.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { formatDate, localizeFeedback, messages } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
-const copy = zhCN.users
+const copy = messages.users
 const loading = ref(true)
 const notFound = ref(false)
 const failed = ref(false)
@@ -47,14 +47,6 @@ async function loadUser() {
   }
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return zhCN.common.unknown
-  return new Intl.DateTimeFormat('zh-CN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
-}
-
 function resetStatusAttempt() {
   statusError.value = ''
   statusKey.value = ''
@@ -71,8 +63,8 @@ async function changeStatus() {
   try {
     await ElMessageBox.confirm(
       targetStatus === 'disabled' ? copy.disableConfirm : copy.enableConfirm,
-      zhCN.common.confirm,
-      { confirmButtonText: zhCN.common.confirm, cancelButtonText: zhCN.common.cancel },
+      messages.common.confirm,
+      { confirmButtonText: messages.common.confirm, cancelButtonText: messages.common.cancel },
     )
   } catch {
     return
@@ -121,7 +113,7 @@ onMounted(loadUser)
 
 <template>
   <section class="detail-page" aria-labelledby="detail-title">
-    <RouterLink class="back-link" :to="{ name: 'users' }">← {{ zhCN.common.back }}</RouterLink>
+    <RouterLink class="back-link" :to="{ name: 'users' }">← {{ messages.common.back }}</RouterLink>
 
     <ElSkeleton v-if="loading" animated :rows="8" />
 
@@ -135,11 +127,11 @@ onMounted(loadUser)
     <StatePanel
       v-else-if="failed"
       :title="copy.errorTitle"
-      :description="zhCN.errors.generic"
+      :description="messages.errors.generic"
       tone="danger"
     >
       <template #actions
-        ><ElButton @click="loadUser">{{ zhCN.common.retry }}</ElButton></template
+        ><ElButton @click="loadUser">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
 
@@ -163,14 +155,14 @@ onMounted(loadUser)
           :type="user.status === 'enabled' ? 'success' : 'info'"
           size="large"
         >
-          {{ user.status === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled }}
+          {{ user.status === 'enabled' ? messages.common.enabled : messages.common.disabled }}
         </ElTag>
         <RouterLink
           v-if="sessionStore.hasCapability('users:write')"
           class="detail-edit"
           :to="{ name: 'user-edit', params: { userId: user.id } }"
         >
-          <ElButton type="primary" plain>{{ zhCN.common.edit }}</ElButton>
+          <ElButton type="primary" plain>{{ messages.common.edit }}</ElButton>
         </RouterLink>
       </header>
 
@@ -190,7 +182,7 @@ onMounted(loadUser)
         <article>
           <span>{{ copy.status }}</span>
           <strong>{{
-            user.status === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled
+            user.status === 'enabled' ? messages.common.enabled : messages.common.disabled
           }}</strong>
         </article>
         <article>
@@ -222,7 +214,9 @@ onMounted(loadUser)
             @input="resetStatusAttempt"
           />
         </label>
-        <p v-if="statusError" class="status-error" role="alert">{{ statusError }}</p>
+        <p v-if="statusError" class="status-error" role="alert">
+          {{ localizeFeedback(statusError) }}
+        </p>
         <p v-if="statusChanged" class="status-success" role="status">{{ copy.statusChanged }}</p>
         <ElButton
           :type="user.status === 'enabled' ? 'danger' : 'primary'"

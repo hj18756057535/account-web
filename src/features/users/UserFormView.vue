@@ -13,12 +13,12 @@ import {
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { localizeFeedback, messages } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
-const copy = zhCN.users
+const copy = messages.users
 const editing = computed(() => typeof route.params.userId === 'string')
 const loading = ref(editing.value)
 const submitting = ref(false)
@@ -144,7 +144,7 @@ onMounted(loadUser)
         params: editing ? { userId: route.params.userId } : {},
       }"
     >
-      ← {{ zhCN.common.back }}
+      ← {{ messages.common.back }}
     </RouterLink>
 
     <header>
@@ -169,11 +169,11 @@ onMounted(loadUser)
     <StatePanel
       v-else-if="loadFailed"
       :title="copy.errorTitle"
-      :description="zhCN.errors.generic"
+      :description="messages.errors.generic"
       tone="danger"
     >
       <template #actions>
-        <ElButton @click="loadUser">{{ zhCN.common.retry }}</ElButton>
+        <ElButton @click="loadUser">{{ messages.common.retry }}</ElButton>
       </template>
     </StatePanel>
 
@@ -184,7 +184,7 @@ onMounted(loadUser)
       tone="warning"
     >
       <template #actions>
-        <ElButton @click="loadUser">{{ zhCN.common.retry }}</ElButton>
+        <ElButton @click="loadUser">{{ messages.common.retry }}</ElButton>
       </template>
     </StatePanel>
 
@@ -192,12 +192,14 @@ onMounted(loadUser)
       <label>
         <span>{{ copy.account }}</span>
         <ElInput v-model="form.account" :placeholder="copy.accountPlaceholder" maxlength="128" />
-        <small v-if="fieldErrors.account" role="alert">{{ fieldErrors.account }}</small>
+        <small v-if="fieldErrors.account" role="alert">{{
+          localizeFeedback(fieldErrors.account)
+        }}</small>
       </label>
       <label>
         <span>{{ copy.name }}</span>
         <ElInput v-model="form.name" :placeholder="copy.namePlaceholder" maxlength="128" />
-        <small v-if="fieldErrors.name" role="alert">{{ fieldErrors.name }}</small>
+        <small v-if="fieldErrors.name" role="alert">{{ localizeFeedback(fieldErrors.name) }}</small>
       </label>
       <label>
         <span>{{ copy.email }}</span>
@@ -207,12 +209,16 @@ onMounted(loadUser)
           :placeholder="copy.emailPlaceholder"
           maxlength="255"
         />
-        <small v-if="fieldErrors.email" role="alert">{{ fieldErrors.email }}</small>
+        <small v-if="fieldErrors.email" role="alert">{{
+          localizeFeedback(fieldErrors.email)
+        }}</small>
       </label>
       <label>
         <span>{{ copy.phone }}</span>
         <ElInput v-model="form.phone" :placeholder="copy.phonePlaceholder" maxlength="64" />
-        <small v-if="fieldErrors.phone" role="alert">{{ fieldErrors.phone }}</small>
+        <small v-if="fieldErrors.phone" role="alert">{{
+          localizeFeedback(fieldErrors.phone)
+        }}</small>
       </label>
 
       <p v-if="failed && !conflict" class="form-error" role="alert">{{ copy.submitFailed }}</p>
@@ -223,10 +229,10 @@ onMounted(loadUser)
             params: editing ? { userId: route.params.userId } : {},
           }"
         >
-          <ElButton>{{ zhCN.common.cancel }}</ElButton>
+          <ElButton>{{ messages.common.cancel }}</ElButton>
         </RouterLink>
         <ElButton type="primary" native-type="submit" :loading="submitting">
-          {{ submitting ? zhCN.common.saving : zhCN.common.save }}
+          {{ submitting ? messages.common.saving : messages.common.save }}
         </ElButton>
       </footer>
     </form>

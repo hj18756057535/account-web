@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ElButton } from 'element-plus'
 import StatePanel from './StatePanel.vue'
-import { zhCN } from '@/locales/zh-CN'
+import { messages } from '@/locales'
 </script>
 
 <template>
   <main class="standalone-state">
-    <StatePanel :title="zhCN.errors.notFoundTitle" :description="zhCN.errors.notFoundDescription">
+    <StatePanel
+      :title="messages.errors.notFoundTitle"
+      :description="messages.errors.notFoundDescription"
+    >
       <template #actions>
         <RouterLink :to="{ name: 'users' }"
-          ><ElButton type="primary">{{ zhCN.navigation.users }}</ElButton></RouterLink
+          ><ElButton type="primary">{{ messages.navigation.users }}</ElButton></RouterLink
         >
       </template>
     </StatePanel>

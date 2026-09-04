@@ -11,13 +11,13 @@ import {
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { localizeFeedback, messages } from '@/locales'
 
 const props = defineProps<{ userId: string }>()
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
-const copy = zhCN.access
+const copy = messages.access
 const rows = ref<ApplicationAccessResponse[]>([])
 const loading = ref(true)
 const failed = ref(false)
@@ -64,7 +64,7 @@ async function toggle(row: ApplicationAccessResponse) {
   if (saving[row.appCode]) return
   const reason = reasons[row.appCode]?.trim()
   if (!reason) {
-    errors[row.appCode] = zhCN.users.statusReasonRequired
+    errors[row.appCode] = messages.users.statusReasonRequired
     return
   }
   const target = row.desiredStatus === 'enabled' ? 'disabled' : 'enabled'
@@ -114,11 +114,11 @@ onMounted(loadAccess)
     <StatePanel
       v-else-if="failed"
       :title="copy.failed"
-      :description="zhCN.errors.generic"
+      :description="messages.errors.generic"
       tone="danger"
     >
       <template #actions
-        ><ElButton @click="loadAccess">{{ zhCN.common.retry }}</ElButton></template
+        ><ElButton @click="loadAccess">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
     <StatePanel v-else-if="!rows.length" :title="copy.empty" :description="copy.description" />
@@ -131,13 +131,13 @@ onMounted(loadAccess)
         <div>
           <span>{{ copy.applicationStatus }}</span
           ><ElTag :type="row.applicationStatus === 'enabled' ? 'success' : 'info'">{{
-            row.applicationStatus === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled
+            row.applicationStatus === 'enabled' ? messages.common.enabled : messages.common.disabled
           }}</ElTag>
         </div>
         <div>
           <span>{{ copy.desiredStatus }}</span
           ><ElTag :type="row.desiredStatus === 'enabled' ? 'success' : 'info'">{{
-            row.desiredStatus === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled
+            row.desiredStatus === 'enabled' ? messages.common.enabled : messages.common.disabled
           }}</ElTag>
         </div>
         <div>
@@ -163,9 +163,9 @@ onMounted(loadAccess)
             {{ row.desiredStatus === 'enabled' ? copy.disable : copy.enable }}
           </ElButton>
           <div v-if="errors[row.appCode]" class="error" role="alert">
-            <p>{{ errors[row.appCode] }}</p>
+            <p>{{ localizeFeedback(errors[row.appCode]) }}</p>
             <ElButton :disabled="saving[row.appCode]" @click="loadAccess">
-              {{ zhCN.common.retry }}
+              {{ messages.common.retry }}
             </ElButton>
           </div>
           <p v-if="successes[row.appCode]" class="success" role="status">

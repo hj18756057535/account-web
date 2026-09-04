@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { ElButton, ElMessage } from 'element-plus'
 
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { messages } from '@/locales'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 
-const copy = zhCN
+const copy = messages
 const router = useRouter()
 const sessionStore = useSessionStore()
 const initials = computed(() => sessionStore.currentUser?.name.slice(0, 1).toUpperCase() || 'A')
@@ -50,11 +51,14 @@ async function signOut() {
           <span>{{ copy.navigation.access }}</span>
           <small>{{ copy.navigation.accessInUserDetail }}</small>
         </button>
-        <button class="nav-item nav-item--disabled" type="button" disabled>
+        <RouterLink
+          v-if="sessionStore.hasCapability('audit:read')"
+          class="nav-item"
+          :to="{ name: 'audit-events' }"
+        >
           <span class="nav-icon" aria-hidden="true">L</span>
           <span>{{ copy.navigation.audit }}</span>
-          <small>{{ copy.navigation.comingSoon }}</small>
-        </button>
+        </RouterLink>
       </nav>
 
       <div class="sidebar-insight">
@@ -73,6 +77,7 @@ async function signOut() {
           {{ copy.brand.environment }}
         </div>
         <div class="account-menu">
+          <LanguageSwitcher />
           <span class="avatar" aria-hidden="true">{{ initials }}</span>
           <span class="account-copy">
             <strong>{{ sessionStore.currentUser?.name }}</strong>
@@ -264,6 +269,7 @@ async function signOut() {
 }
 
 .account-menu {
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 

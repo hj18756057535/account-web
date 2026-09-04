@@ -1,3 +1,5 @@
+import { locale } from '@/locales'
+
 export interface ApiErrorBody {
   code: string
   message: string
@@ -34,6 +36,7 @@ export async function requestJson<T>(url: string, options: RequestOptions = {}):
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs ?? 10_000)
   const headers = new Headers(requestOptions.headers)
   headers.set('Accept', 'application/json')
+  headers.set('Accept-Language', locale.value)
   if (body !== undefined) {
     headers.set('Content-Type', 'application/json')
   }

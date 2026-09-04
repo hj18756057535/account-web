@@ -6,9 +6,10 @@ import { ElButton, ElForm, ElFormItem, ElInput } from 'element-plus'
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from './session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { localizeFeedback, messages } from '@/locales'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 
-const copy = zhCN.login
+const copy = messages.login
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
@@ -29,7 +30,7 @@ async function submit() {
     errorMessage.value =
       error instanceof ApiError && error.code === 'INVALID_CREDENTIALS'
         ? copy.invalidCredentials
-        : zhCN.errors.generic
+        : messages.errors.generic
   } finally {
     submitting.value = false
   }
@@ -50,11 +51,11 @@ async function retryConnection() {
     <section class="login-story" aria-labelledby="login-story-title">
       <div class="login-brand">
         <span class="login-brand__mark" aria-hidden="true"></span>
-        <span>{{ zhCN.brand.name }}</span>
+        <span>{{ messages.brand.name }}</span>
       </div>
       <div class="story-copy">
         <p>{{ copy.eyebrow }}</p>
-        <h1 id="login-story-title">{{ zhCN.brand.product }}</h1>
+        <h1 id="login-story-title">{{ messages.brand.product }}</h1>
         <span>{{ copy.story }}</span>
       </div>
       <div class="security-grid">
@@ -77,6 +78,7 @@ async function retryConnection() {
 
     <section class="login-form-wrap" aria-labelledby="login-title">
       <div class="login-card">
+        <LanguageSwitcher class="login-language" />
         <p class="login-card__eyebrow">{{ copy.eyebrow }}</p>
         <h2 id="login-title">{{ copy.title }}</h2>
         <p class="login-card__description">{{ copy.description }}</p>
@@ -89,7 +91,7 @@ async function retryConnection() {
         >
           <template #actions>
             <ElButton :loading="sessionStore.loading" @click="retryConnection">
-              {{ zhCN.common.retry }}
+              {{ messages.common.retry }}
             </ElButton>
           </template>
         </StatePanel>
@@ -114,7 +116,9 @@ async function retryConnection() {
               @keyup.enter="submit"
             />
           </ElFormItem>
-          <p v-if="errorMessage" class="login-error" role="alert">{{ errorMessage }}</p>
+          <p v-if="errorMessage" class="login-error" role="alert">
+            {{ localizeFeedback(errorMessage) }}
+          </p>
           <ElButton
             class="login-submit"
             type="primary"
@@ -131,6 +135,10 @@ async function retryConnection() {
 </template>
 
 <style scoped>
+.login-language {
+  margin-bottom: var(--space-4);
+}
+
 .login-page {
   display: grid;
   min-height: 100vh;

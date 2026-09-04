@@ -10,7 +10,7 @@
 - Vue Router 管理路由；Pinia 只保存跨页面必要状态。
 - Element Plus 提供基础组件，Account Design Token 位于 `src/design`。
 - 功能按 `src/features/<domain>` 纵向组织；API 请求和生成类型位于 `src/api`。
-- 用户可见文案进入 `src/locales`，首期语言为 `zh-CN`。
+- 用户可见文案进入 `src/locales`，支持 `zh-CN` / `en-US`，默认中文；新增文案必须同步双语，页面读取响应式 `messages`，不得直接绑定单一语言资源。
 
 ## 硬规则
 

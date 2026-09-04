@@ -16,9 +16,9 @@ import { listApplications, type ApplicationResponse } from '@/api/account'
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { messages } from '@/locales'
 
-const copy = zhCN.applications
+const copy = messages.applications
 const router = useRouter()
 const sessionStore = useSessionStore()
 const loading = ref(true)
@@ -77,7 +77,7 @@ onMounted(loadApplications)
         v-if="sessionStore.hasCapability('applications:write')"
         :to="{ name: 'application-create' }"
       >
-        <ElButton type="primary">{{ zhCN.common.createApplication }}</ElButton>
+        <ElButton type="primary">{{ messages.common.createApplication }}</ElButton>
       </RouterLink>
     </header>
 
@@ -90,12 +90,12 @@ onMounted(loadApplications)
         <span>{{ copy.statusLabel }}</span>
         <ElSelect v-model="filters.status">
           <ElOption :label="copy.allStatuses" value="" />
-          <ElOption :label="zhCN.common.enabled" value="enabled" />
-          <ElOption :label="zhCN.common.disabled" value="disabled" />
+          <ElOption :label="messages.common.enabled" value="enabled" />
+          <ElOption :label="messages.common.disabled" value="disabled" />
         </ElSelect>
       </label>
       <div class="filter-actions">
-        <ElButton native-type="button" @click="reset">{{ zhCN.common.cancel }}</ElButton>
+        <ElButton native-type="button" @click="reset">{{ messages.common.cancel }}</ElButton>
         <ElButton type="primary" native-type="submit">{{ copy.search }}</ElButton>
       </div>
     </form>
@@ -104,11 +104,11 @@ onMounted(loadApplications)
     <StatePanel
       v-else-if="failed"
       :title="copy.loadFailed"
-      :description="zhCN.errors.generic"
+      :description="messages.errors.generic"
       tone="danger"
     >
       <template #actions
-        ><ElButton @click="loadApplications">{{ zhCN.common.retry }}</ElButton></template
+        ><ElButton @click="loadApplications">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
     <StatePanel
@@ -135,14 +135,16 @@ onMounted(loadApplications)
       <ElTableColumn :label="copy.status" width="110">
         <template #default="scope">
           <ElTag :type="scope.row.status === 'enabled' ? 'success' : 'info'">
-            {{ scope.row.status === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled }}
+            {{
+              scope.row.status === 'enabled' ? messages.common.enabled : messages.common.disabled
+            }}
           </ElTag>
         </template>
       </ElTableColumn>
       <ElTableColumn :label="copy.action" width="120" fixed="right">
         <template #default="scope">
           <RouterLink :to="{ name: 'application-detail', params: { appCode: scope.row.appCode } }">
-            {{ zhCN.common.view }}
+            {{ messages.common.view }}
           </RouterLink>
         </template>
       </ElTableColumn>

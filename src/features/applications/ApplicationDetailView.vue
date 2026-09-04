@@ -22,12 +22,12 @@ import {
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { zhCN } from '@/locales/zh-CN'
+import { localizeFeedback, messages } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
-const copy = zhCN.applications
+const copy = messages.applications
 const application = ref<ApplicationResponse | null>(null)
 const loading = ref(true)
 const notFound = ref(false)
@@ -79,13 +79,13 @@ function resetAttempt() {
 
 async function requireReason(confirmText: string) {
   if (!reason.value.trim()) {
-    actionError.value = zhCN.users.statusReasonRequired
+    actionError.value = messages.users.statusReasonRequired
     return false
   }
   try {
-    await ElMessageBox.confirm(confirmText, zhCN.common.confirm, {
-      confirmButtonText: zhCN.common.confirm,
-      cancelButtonText: zhCN.common.cancel,
+    await ElMessageBox.confirm(confirmText, messages.common.confirm, {
+      confirmButtonText: messages.common.confirm,
+      cancelButtonText: messages.common.cancel,
     })
     return true
   } catch {
@@ -202,7 +202,7 @@ onBeforeUnmount(clearSecret)
 <template>
   <section class="application-detail" aria-labelledby="application-detail-title">
     <RouterLink class="back-link" :to="{ name: 'applications' }"
-      >← {{ zhCN.common.back }}</RouterLink
+      >← {{ messages.common.back }}</RouterLink
     >
     <ElSkeleton v-if="loading" animated :rows="9" />
     <StatePanel
@@ -214,11 +214,11 @@ onBeforeUnmount(clearSecret)
     <StatePanel
       v-else-if="failed"
       :title="copy.loadFailed"
-      :description="zhCN.errors.generic"
+      :description="messages.errors.generic"
       tone="danger"
     >
       <template #actions
-        ><ElButton @click="loadApplication">{{ zhCN.common.retry }}</ElButton></template
+        ><ElButton @click="loadApplication">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
 
@@ -230,13 +230,15 @@ onBeforeUnmount(clearSecret)
           <span>{{ application.appCode }}</span>
         </div>
         <ElTag :type="application.status === 'enabled' ? 'success' : 'info'" size="large">
-          {{ application.status === 'enabled' ? zhCN.common.enabled : zhCN.common.disabled }}
+          {{
+            application.status === 'enabled' ? messages.common.enabled : messages.common.disabled
+          }}
         </ElTag>
         <RouterLink
           v-if="sessionStore.hasCapability('applications:write')"
           :to="{ name: 'application-edit', params: { appCode: application.appCode } }"
         >
-          <ElButton type="primary" plain>{{ zhCN.common.edit }}</ElButton>
+          <ElButton type="primary" plain>{{ messages.common.edit }}</ElButton>
         </RouterLink>
       </header>
 
@@ -259,7 +261,7 @@ onBeforeUnmount(clearSecret)
         </article>
         <article>
           <span>{{ copy.defaultTenantCode }}</span
-          ><strong>{{ application.defaultTenantCode || zhCN.common.unknown }}</strong>
+          ><strong>{{ application.defaultTenantCode || messages.common.unknown }}</strong>
         </article>
         <article>
           <span>{{ copy.secretState }}</span
@@ -296,7 +298,7 @@ onBeforeUnmount(clearSecret)
             show-word-limit
             @input="resetAttempt"
         /></label>
-        <p v-if="actionError" class="error" role="alert">{{ actionError }}</p>
+        <p v-if="actionError" class="error" role="alert">{{ localizeFeedback(actionError) }}</p>
         <p v-if="actionSuccess" class="success" role="status">{{ actionSuccess }}</p>
         <div class="actions">
           <ElButton
@@ -330,8 +332,8 @@ onBeforeUnmount(clearSecret)
       <ElAlert :title="copy.secretOnceDescription" type="warning" show-icon :closable="false" />
       <code class="secret-value">{{ oneTimeSecret }}</code>
       <template #footer>
-        <ElButton @click="copySecret">{{ zhCN.common.copy }}</ElButton>
-        <ElButton type="primary" @click="clearSecret">{{ zhCN.common.confirm }}</ElButton>
+        <ElButton @click="copySecret">{{ messages.common.copy }}</ElButton>
+        <ElButton type="primary" @click="clearSecret">{{ messages.common.confirm }}</ElButton>
       </template>
     </ElDialog>
   </section>
