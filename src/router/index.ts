@@ -42,6 +42,30 @@ const router = createRouter({
           meta: { requiresAuth: true, capability: 'users:read' },
         },
         {
+          path: 'applications',
+          name: 'applications',
+          component: () => import('@/features/applications/ApplicationListView.vue'),
+          meta: { requiresAuth: true, capability: 'applications:read' },
+        },
+        {
+          path: 'applications/new',
+          name: 'application-create',
+          component: () => import('@/features/applications/ApplicationFormView.vue'),
+          meta: { requiresAuth: true, capability: 'applications:write' },
+        },
+        {
+          path: 'applications/:appCode/edit',
+          name: 'application-edit',
+          component: () => import('@/features/applications/ApplicationFormView.vue'),
+          meta: { requiresAuth: true, capability: 'applications:write' },
+        },
+        {
+          path: 'applications/:appCode',
+          name: 'application-detail',
+          component: () => import('@/features/applications/ApplicationDetailView.vue'),
+          meta: { requiresAuth: true, capability: 'applications:read' },
+        },
+        {
           path: 'forbidden',
           name: 'forbidden',
           component: () => import('@/components/ForbiddenView.vue'),

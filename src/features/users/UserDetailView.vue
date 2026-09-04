@@ -6,6 +6,7 @@ import { ElAlert, ElButton, ElInput, ElMessageBox, ElSkeleton, ElTag } from 'ele
 import { changeUserStatus, getUser, type UserResponse } from '@/api/account'
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
+import UserApplicationAccess from '@/features/applications/UserApplicationAccess.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { zhCN } from '@/locales/zh-CN'
 
@@ -231,6 +232,11 @@ onMounted(loadUser)
           {{ user.status === 'enabled' ? copy.disable : copy.enable }}
         </ElButton>
       </section>
+
+      <UserApplicationAccess
+        v-if="sessionStore.hasCapability('application-access:read')"
+        :user-id="user.id"
+      />
     </template>
   </section>
 </template>

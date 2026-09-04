@@ -76,6 +76,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询已登记应用 */
+        get: operations["listApplications"];
+        put?: never;
+        /**
+         * 登记应用并生成首个 Secret
+         * @description Secret 仅在首次成功响应中显示。相同幂等键重放不会再次显示 Secret，返回 409； 调用方遗失后必须执行轮换。
+         */
+        post: operations["createApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询应用详情 */
+        get: operations["getApplication"];
+        /** 更新应用配置 */
+        put: operations["updateApplication"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 启用或禁用应用 */
+        put: operations["changeApplicationStatus"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/secret/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 轮换应用 Secret
+         * @description 新 Secret 仅显示一次，幂等重放不会再次返回敏感结果。
+         */
+        post: operations["rotateApplicationSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/secret/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 撤销应用 Secret */
+        post: operations["revokeApplicationSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{userId}/application-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询用户对所有应用的准入期望状态 */
+        get: operations["listUserApplicationAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{userId}/application-access/{appCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * 修改用户准入期望状态
+         * @description 当前只持久化期望状态和待投递命令，不启动 Outbox Worker； integrationStatus 固定为 pending_application_adaptation。
+         */
+        put: operations["changeUserApplicationAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi/sso/tickets/exchange": {
         parameters: {
             query?: never;
@@ -122,7 +252,7 @@ export interface components {
             authenticated: boolean;
             user: components["schemas"]["SessionUser"] | null;
             roles: ("ACCOUNT_ADMIN" | "ACCOUNT_AUDITOR")[];
-            capabilities: ("users:read" | "users:write")[];
+            capabilities: ("users:read" | "users:write" | "applications:read" | "applications:write" | "application-access:read" | "application-access:write")[];
             csrfToken: string;
         };
         SessionUser: {
@@ -174,6 +304,103 @@ export interface components {
             size: number;
             /** Format: int64 */
             total: number;
+        };
+        /** @enum {string} */
+        ApplicationStatus: "enabled" | "disabled";
+        /** @enum {string} */
+        ApplicationProtocolCapability: "sso" | "admin_ticket" | "user_sync";
+        /** @enum {string} */
+        ApplicationSecretState: "active" | "revoked";
+        CreateApplicationRequest: {
+            appCode: string;
+            name: string;
+            /** Format: uri */
+            entryUrl: string;
+            /**
+             * Format: uri
+             * @description 精确回调 URI，不接受通配符或 fragment
+             */
+            ssoCallbackUrl: string;
+            /** @description 精确授权页 URI，可包含 {externalUserId} 路径占位符 */
+            permissionIframeUrl: string;
+            /** Format: uri */
+            notifyBaseUrl: string;
+            defaultTenantCode?: string | null;
+            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
+        };
+        UpdateApplicationRequest: components["schemas"]["CreateApplicationFields"] & {
+            /** Format: int64 */
+            version: number;
+        };
+        CreateApplicationFields: {
+            name: string;
+            /** Format: uri */
+            entryUrl: string;
+            /** Format: uri */
+            ssoCallbackUrl: string;
+            permissionIframeUrl: string;
+            /** Format: uri */
+            notifyBaseUrl: string;
+            defaultTenantCode?: string | null;
+            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
+        };
+        ApplicationResponse: {
+            appCode: string;
+            name: string;
+            /** Format: uri */
+            entryUrl: string;
+            /** Format: uri */
+            ssoCallbackUrl: string;
+            permissionIframeUrl: string;
+            /** Format: uri */
+            notifyBaseUrl: string;
+            defaultTenantCode: string;
+            status: components["schemas"]["ApplicationStatus"];
+            /** Format: int64 */
+            version: number;
+            secretVersion: number;
+            secretState: components["schemas"]["ApplicationSecretState"];
+            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
+            /** Format: date-time */
+            createdAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        ApplicationSecretResponse: {
+            application: components["schemas"]["ApplicationResponse"];
+            /** @description 仅在本次成功响应中显示，不得写入浏览器持久化、日志或截图 */
+            secret: string;
+        };
+        VersionedReasonRequest: {
+            /** Format: int64 */
+            version: number;
+            reason: string;
+        };
+        ChangeApplicationStatusRequest: {
+            status: components["schemas"]["ApplicationStatus"];
+            /** Format: int64 */
+            version: number;
+            reason: string;
+        };
+        ChangeApplicationAccessRequest: {
+            status: components["schemas"]["ApplicationStatus"];
+            /** Format: int64 */
+            version: number;
+            reason: string;
+        };
+        ApplicationAccessResponse: {
+            userId: string;
+            appCode: string;
+            applicationName: string;
+            applicationStatus: components["schemas"]["ApplicationStatus"];
+            desiredStatus: components["schemas"]["ApplicationStatus"];
+            /** Format: int64 */
+            version: number;
+            /** @enum {string} */
+            integrationStatus: "pending_application_adaptation";
+            syncCommandId?: string | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
         };
         ErrorResponse: {
             /** @example AUTHENTICATION_REQUIRED */
@@ -261,6 +488,8 @@ export interface components {
         CsrfToken: string;
         /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
         IdempotencyKey: string;
+        AppCode: string;
+        UserId: string;
     };
     requestBodies: never;
     headers: never;
@@ -495,6 +724,279 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listApplications: {
+        parameters: {
+            query?: {
+                query?: string;
+                status?: components["schemas"]["ApplicationStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 应用列表，任何响应均不包含 Secret */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationResponse"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createApplication: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApplicationRequest"];
+            };
+        };
+        responses: {
+            /** @description 应用已登记，Secret 只在本响应中显示 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationSecretResponse"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 应用详情，不含 Secret */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateApplication: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateApplicationRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新后的应用，version 单调递增 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    changeApplicationStatus: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeApplicationStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description 状态已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    rotateApplicationSecret: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionedReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description Secret 已轮换 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationSecretResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    revokeApplicationSecret: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionedReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description Secret 已撤销，后续签名请求将被拒绝 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationResponse"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listUserApplicationAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 未配置应用以 disabled、version=0 返回 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationAccessResponse"][];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    changeUserApplicationAccess: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                userId: components["parameters"]["UserId"];
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeApplicationAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description 期望状态已保存，业务应用仍待适配 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationAccessResponse"];
+                };
+            };
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];

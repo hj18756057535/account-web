@@ -37,15 +37,18 @@ async function signOut() {
           <span class="nav-icon" aria-hidden="true">U</span>
           <span>{{ copy.navigation.users }}</span>
         </RouterLink>
-        <button class="nav-item nav-item--disabled" type="button" disabled>
+        <RouterLink
+          v-if="sessionStore.hasCapability('applications:read')"
+          class="nav-item"
+          :to="{ name: 'applications' }"
+        >
           <span class="nav-icon" aria-hidden="true">A</span>
           <span>{{ copy.navigation.applications }}</span>
-          <small>{{ copy.navigation.comingSoon }}</small>
-        </button>
+        </RouterLink>
         <button class="nav-item nav-item--disabled" type="button" disabled>
           <span class="nav-icon" aria-hidden="true">C</span>
           <span>{{ copy.navigation.access }}</span>
-          <small>{{ copy.navigation.comingSoon }}</small>
+          <small>{{ copy.navigation.accessInUserDetail }}</small>
         </button>
         <button class="nav-item nav-item--disabled" type="button" disabled>
           <span class="nav-icon" aria-hidden="true">L</span>

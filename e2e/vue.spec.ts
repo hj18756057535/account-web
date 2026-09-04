@@ -150,6 +150,155 @@ test('creates, edits, and disables a global user with protected write requests',
   expect(writeRequests[2]?.body).toMatchObject({ version: 2, status: 'disabled' })
 })
 
+test('registers an application, reveals its secret once, and records pending access intent', async ({
+  page,
+}) => {
+  test.setTimeout(15_000)
+  const session = {
+    authenticated: true,
+    user: { id: 'synthetic-admin', account: 'admin', name: '测试管理员' },
+    roles: ['ACCOUNT_ADMIN'],
+    capabilities: [
+      'users:read',
+      'users:write',
+      'applications:read',
+      'applications:write',
+      'application-access:read',
+      'application-access:write',
+    ],
+    csrfToken: 'synthetic-csrf-token-for-application-test',
+  }
+  const application = {
+    appCode: 'analytics',
+    name: '分析应用',
+    entryUrl: 'https://analytics.example.test',
+    ssoCallbackUrl: 'https://analytics.example.test/callback',
+    permissionIframeUrl: 'https://analytics.example.test/permissions',
+    notifyBaseUrl: 'https://analytics.example.test/notify',
+    defaultTenantCode: 'default',
+    status: 'enabled',
+    version: 1,
+    secretVersion: 1,
+    secretState: 'active',
+    protocolCapabilities: ['sso', 'admin_ticket', 'user_sync'],
+    createdAt: '2026-09-02T00:00:00Z',
+    updatedAt: '2026-09-02T00:00:00Z',
+  }
+  const user = {
+    id: 'synthetic-user',
+    account: 'zhangsan',
+    email: 'zhangsan@example.test',
+    name: '张三',
+    phone: '13800000000',
+    status: 'enabled',
+    version: 1,
+    createdAt: '2026-08-20T00:00:00Z',
+    updatedAt: '2026-08-20T00:00:00Z',
+  }
+  let access = {
+    userId: user.id,
+    appCode: application.appCode,
+    applicationName: application.name,
+    applicationStatus: 'enabled',
+    desiredStatus: 'disabled',
+    version: 0,
+    integrationStatus: 'pending_application_adaptation',
+    syncCommandId: null,
+    updatedAt: null,
+  }
+  const writes: Array<{ path: string; headers: Record<string, string>; body: unknown }> = []
+
+  await page.route('**/api/session', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(session) }),
+  )
+  await page.route('**/api/applications**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'POST' && url.pathname.endsWith('/applications')) {
+      writes.push({
+        path: url.pathname,
+        headers: request.headers(),
+        body: request.postDataJSON(),
+      })
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          application,
+          secret: 'synthetic-one-time-secret-not-a-real-credential',
+        }),
+      })
+      return
+    }
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify(url.pathname.endsWith('/applications') ? [] : application),
+    })
+  })
+  await page.route('**/api/users/synthetic-user**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (url.pathname.includes('/application-access')) {
+      if (request.method() === 'PUT') {
+        writes.push({
+          path: url.pathname,
+          headers: request.headers(),
+          body: request.postDataJSON(),
+        })
+        access = {
+          ...access,
+          desiredStatus: 'enabled',
+          version: 1,
+          syncCommandId: 'synthetic-sync-command',
+          updatedAt: '2026-09-02T00:01:00Z',
+        }
+        await route.fulfill({
+          status: 202,
+          contentType: 'application/json',
+          body: JSON.stringify(access),
+        })
+        return
+      }
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify([access]) })
+      return
+    }
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) })
+  })
+
+  await page.goto('/console/applications')
+  await page.getByRole('link', { name: '登记应用' }).click()
+  await page.getByLabel('应用编码').fill(application.appCode)
+  await page.getByLabel('应用名称').fill(application.name)
+  await page.getByLabel('入口地址').fill(application.entryUrl)
+  await page.getByLabel('SSO 精确回调地址').fill(application.ssoCallbackUrl)
+  await page.getByLabel('授权页地址').fill(application.permissionIframeUrl)
+  await page.getByLabel('用户同步通知地址').fill(application.notifyBaseUrl)
+  await page.getByRole('button', { name: '保存' }).click()
+
+  const secretDialog = page.getByRole('dialog', { name: '请立即安全保存 Secret' })
+  await expect(secretDialog).toBeVisible()
+  await expect(secretDialog.getByRole('textbox')).toHaveValue(
+    'synthetic-one-time-secret-not-a-real-credential',
+  )
+  await page.getByRole('button', { name: '确认操作' }).click()
+  await expect(secretDialog).toBeHidden()
+  await expect(page.getByRole('heading', { name: application.name })).toBeVisible()
+
+  await page.goto('/console/users/synthetic-user')
+  await expect(page.getByRole('heading', { name: '应用准入期望状态' })).toBeVisible()
+  await expect(page.getByText('待应用适配')).toBeVisible()
+  await page.getByPlaceholder('请填写准入变更原因').fill('浏览器验收开通')
+  await page.getByRole('button', { name: '期望启用' }).click()
+  await expect(page.getByText('准入期望状态已保存，等待应用适配')).toBeVisible()
+
+  expect(writes).toHaveLength(2)
+  for (const request of writes) {
+    expect(request.headers['x-csrf-token']).toBe(session.csrfToken)
+    expect(request.headers['idempotency-key']).toBeTruthy()
+  }
+  expect(writes[1]?.body).toMatchObject({ status: 'enabled', version: 0 })
+})
+
 test('returns safely to login when the user directory reports an expired session', async ({
   page,
 }) => {
