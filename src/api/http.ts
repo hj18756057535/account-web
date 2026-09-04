@@ -28,16 +28,17 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   csrfToken?: string
   idempotencyKey?: string
   timeoutMs?: number
+  responseType?: 'json' | 'blob'
 }
 
 export async function requestJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
-  const { body, csrfToken, idempotencyKey, timeoutMs, ...requestOptions } = options
+  const { body, csrfToken, idempotencyKey, timeoutMs, responseType, ...requestOptions } = options
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs ?? 10_000)
   const headers = new Headers(requestOptions.headers)
-  headers.set('Accept', 'application/json')
+  headers.set('Accept', responseType === 'blob' ? '*/*' : 'application/json')
   headers.set('Accept-Language', locale.value)
-  if (body !== undefined) {
+  if (body !== undefined && !(body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
   if (csrfToken) {
@@ -50,7 +51,7 @@ export async function requestJson<T>(url: string, options: RequestOptions = {}):
   try {
     const response = await fetch(url, {
       ...requestOptions,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body),
       credentials: 'same-origin',
       headers,
       signal: controller.signal,
@@ -61,6 +62,7 @@ export async function requestJson<T>(url: string, options: RequestOptions = {}):
     if (response.status === 204) {
       return undefined as T
     }
+    if (responseType === 'blob') return (await response.blob()) as T
     return (await response.json()) as T
   } finally {
     window.clearTimeout(timeout)

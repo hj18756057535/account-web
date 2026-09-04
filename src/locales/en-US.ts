@@ -1,6 +1,35 @@
 import type { Messages } from './types'
 
 export const enUS: Messages = {
+  imports: {
+    title: 'Import users',
+    description:
+      'Download the template, fill in four text columns, then preview before importing. Maximum 5 MiB / 1,000 users.',
+    download: 'Download template',
+    file: 'Select XLSX file',
+    preview: 'Preview validation',
+    commit: 'Confirm import',
+    close: 'Close',
+    count: 'Rows: {count}',
+    expires: 'Preview expires: {time}',
+    row: 'Row',
+    errors: 'Validation errors',
+    valid: 'Validation passed. Confirmation creates the entire batch.',
+    invalid: 'Fix all errors and upload again. No users have been created.',
+    success: 'Created {count} users.',
+    credentials:
+      'Import creates user profiles only. Credentials and application permissions must be configured separately.',
+    failed: 'The request failed. Retry; the same batch will not be created twice.',
+    fileInvalid: 'Select an .xlsx file no larger than 5 MiB.',
+    workbookInvalid:
+      'Upload a valid XLSX file with one sheet and four text columns: account/email/name/phone. Formulas, merged cells, macros and external links are not supported.',
+    limitExceeded:
+      'The file must not exceed 5 MiB or 1,000 rows. Expanded content and field lengths are also limited.',
+    expired: 'The preview has expired or is no longer available. Preview the file again.',
+    denied: 'Your session or import permission is no longer valid.',
+    conflict: 'No users were created because of a conflict. Preview the file again.',
+    disabled: 'User import is disabled.',
+  },
   brand: {
     name: 'Account Center',
     product: 'Unified Account Console',
@@ -212,6 +241,7 @@ export const enUS: Messages = {
     targetType: 'Target type',
     allTypes: 'All types',
     targetTypes: {
+      USER_IMPORT: 'User import',
       USER: 'User',
       APPLICATION: 'Application',
       USER_APPLICATION: 'User application access',
@@ -233,6 +263,7 @@ export const enUS: Messages = {
     outcomes: { success: 'Success', failure: 'Failure', unknown: 'Not recorded' },
     operations: {
       USER_CREATED: 'Create user',
+      USER_IMPORT_COMMITTED: 'Import users',
       USER_UPDATED: 'Update user',
       USER_STATUS_CHANGED: 'Change user status',
       APPLICATION_CREATED: 'Register application',

@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/api/user-imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 下载用户导入模板
+         * @description 默认启用，仅管理员可用；可设置 account.user-import.enabled=false 关闭。所有响应 no-store。 .xlsx 上限 5 MiB、1000 条，四列文本 account/email/name/phone。 预览 15 分钟，结果保留 24 小时；重复账号不覆盖，提交全成或全败。
+         */
+        get: operations["downloadUserImportTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user-imports/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 上传并预览用户导入
+         * @description 默认启用，仅管理员可用；可设置 account.user-import.enabled=false 关闭。所有响应 no-store。 .xlsx 上限 5 MiB、1000 条，四列文本 account/email/name/phone。 预览 15 分钟，结果保留 24 小时；重复账号不覆盖，提交全成或全败。
+         */
+        post: operations["previewUserImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user-imports/{importId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取本人导入预览
+         * @description 默认启用，仅管理员可用；可设置 account.user-import.enabled=false 关闭。所有响应 no-store。 .xlsx 上限 5 MiB、1000 条，四列文本 account/email/name/phone。 预览 15 分钟，结果保留 24 小时；重复账号不覆盖，提交全成或全败。
+         */
+        get: operations["getUserImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/user-imports/{importId}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 整批确认导入
+         * @description 默认启用，仅管理员可用；可设置 account.user-import.enabled=false 关闭。所有响应 no-store。 .xlsx 上限 5 MiB、1000 条，四列文本 account/email/name/phone。 预览 15 分钟，结果保留 24 小时；重复账号不覆盖，提交全成或全败。
+         */
+        post: operations["commitUserImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/session": {
         parameters: {
             query?: never;
@@ -281,6 +361,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UserImportPreview: {
+            /** Format: uuid */
+            importId: string;
+            /** Format: date-time */
+            expiresAt: string;
+            rowCount: number;
+            valid: boolean;
+            rows: components["schemas"]["UserImportRow"][];
+        };
+        UserImportRow: {
+            rowNumber: number;
+            account: string;
+            email: string;
+            name: string;
+            phone: string;
+            errors: {
+                field: string;
+                code: string;
+                message: string;
+            }[];
+        };
+        UserImportResult: {
+            /** Format: uuid */
+            importId: string;
+            createdCount: number;
+            items: {
+                rowNumber: number;
+                userId: string;
+            }[];
+        };
         AuditEventResponse: {
             id: string;
             operatorId: string | null;
@@ -309,7 +419,7 @@ export interface components {
             authenticated: boolean;
             user: components["schemas"]["SessionUser"] | null;
             roles: ("ACCOUNT_ADMIN" | "ACCOUNT_AUDITOR")[];
-            capabilities: ("users:read" | "users:write" | "applications:read" | "applications:write" | "application-access:read" | "application-access:write")[];
+            capabilities: ("users:read" | "users:write" | "users:import" | "audit:read" | "applications:read" | "applications:write" | "application-access:read" | "application-access:write")[];
             csrfToken: string;
         };
         SessionUser: {
@@ -554,6 +664,199 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    downloadUserImportTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description XLSX 文本列模板 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description 预览或结果已过期 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 文件或解压内容超过限制 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    previewUserImport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 校验预览，业务错误通过 valid 和 rows.errors 返回 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserImportPreview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description 预览或结果已过期 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 文件或解压内容超过限制 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getUserImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前预览；已提交时 rows 为空 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserImportPreview"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description 预览或结果已过期 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 文件或解压内容超过限制 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    commitUserImport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 导入结果，同批次重复提交不重复创建 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserImportResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description 预览或结果已过期 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 文件或解压内容超过限制 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     getSession: {
         parameters: {
             query?: never;

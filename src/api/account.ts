@@ -20,6 +20,46 @@ export type ChangeApplicationAccessRequest = components['schemas']['ChangeApplic
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
 
+export type UserImportPreview = components['schemas']['UserImportPreview']
+export type UserImportResult = components['schemas']['UserImportResult']
+
+export function downloadUserImportTemplate(): Promise<Blob> {
+  return requestJson(`${apiBase}/user-imports/template`, { responseType: 'blob' })
+}
+
+export function previewUserImport(
+  file: File,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<UserImportPreview> {
+  const body = new FormData()
+  body.append('file', file)
+  return requestJson(`${apiBase}/user-imports/preview`, {
+    method: 'POST',
+    body,
+    csrfToken,
+    idempotencyKey,
+    timeoutMs: 30_000,
+  })
+}
+
+export function getUserImport(id: string): Promise<UserImportPreview> {
+  return requestJson(`${apiBase}/user-imports/${encodeURIComponent(id)}`)
+}
+
+export function commitUserImport(
+  id: string,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<UserImportResult> {
+  return requestJson(`${apiBase}/user-imports/${encodeURIComponent(id)}/commit`, {
+    method: 'POST',
+    csrfToken,
+    idempotencyKey,
+    timeoutMs: 30_000,
+  })
+}
+
 export type AuditEventResponse = components['schemas']['AuditEventResponse']
 export type AuditEventPageResponse = components['schemas']['AuditEventPageResponse']
 export type AuditEventQuery = NonNullable<operations['listAuditEvents']['parameters']['query']>

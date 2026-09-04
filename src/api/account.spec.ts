@@ -7,9 +7,40 @@ import {
   createUser,
   getAuditEvent,
   listAuditEvents,
+  previewUserImport,
+  commitUserImport,
+  downloadUserImportTemplate,
 } from './account'
 
 describe('account write client', () => {
+  it('uploads multipart with security headers and downloads binary without JSON decoding', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ importId: 'batch-1' }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ createdCount: 1 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response('synthetic-xlsx', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    setLocale('en-US')
+    const file = new File(['synthetic'], 'users.xlsx')
+    await previewUserImport(file, 'csrf-import', 'upload-key')
+    await commitUserImport('batch/1', 'csrf-import', 'commit-key')
+    const blob = await downloadUserImportTemplate()
+    const options = fetchMock.mock.calls[0]?.[1]
+    expect(options?.body).toBeInstanceOf(FormData)
+    if (!(options?.body instanceof FormData)) throw new Error('Expected multipart body')
+    expect(options.body.get('file')).toBe(file)
+    const headers = new Headers(options?.headers)
+    expect(headers.has('Content-Type')).toBe(false)
+    expect(headers.get('X-CSRF-Token')).toBe('csrf-import')
+    expect(headers.get('Idempotency-Key')).toBe('upload-key')
+    expect(headers.get('Accept-Language')).toBe('en-US')
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/user-imports/batch%2F1/commit')
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('Idempotency-Key')).toBe(
+      'commit-key',
+    )
+    expect(await blob.text()).toBe('synthetic-xlsx')
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
     setLocale('zh-CN')

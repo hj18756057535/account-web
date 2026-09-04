@@ -19,6 +19,7 @@ import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { formatNumber, messages } from '@/locales'
+import UserImportDialog from './UserImportDialog.vue'
 
 const copy = messages.users
 const route = useRoute()
@@ -83,6 +84,10 @@ onMounted(() => loadUsers(1))
         <p class="page-description">{{ copy.description }}</p>
       </div>
       <div class="heading-actions">
+        <UserImportDialog
+          v-if="sessionStore.hasCapability('users:import')"
+          @imported="loadUsers(1)"
+        />
         <span class="total-pill">{{ totalLabel(result.total) }}</span>
         <RouterLink v-if="sessionStore.hasCapability('users:write')" :to="{ name: 'user-create' }">
           <ElButton type="primary">{{ messages.common.create }}</ElButton>
