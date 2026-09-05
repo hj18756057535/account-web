@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElInput, ElSkeleton, ElTag } from 'element-plus'
+import { ElButton, ElInput, ElMessageBox, ElSkeleton, ElTag } from 'element-plus'
 
 import {
   changeUserApplicationAccess,
   listUserApplicationAccess,
+  retryUserApplicationSynchronization,
   type ApplicationAccessResponse,
 } from '@/api/account'
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { localizeFeedback, messages } from '@/locales'
+import { formatDate, formatNumber, localizeFeedback, messages } from '@/locales'
+import { synchronizationError } from './synchronization'
 
 const props = defineProps<{ userId: string }>()
 const route = useRoute()
@@ -25,19 +27,31 @@ const reasons = reactive<Record<string, string>>({})
 const errors = reactive<Record<string, string>>({})
 const successes = reactive<Record<string, string>>({})
 const keys = reactive<Record<string, string>>({})
+const retryKeys = reactive<Record<string, string>>({})
 const saving = reactive<Record<string, boolean>>({})
+const busy = computed(() => Object.values(saving).some(Boolean))
+let generation = 0
 
 async function loadAccess() {
+  if (busy.value) return
+  const current = ++generation
+  const userId = props.userId
   loading.value = true
   failed.value = false
   try {
-    rows.value = await listUserApplicationAccess(props.userId)
-    for (const row of rows.value) keys[row.appCode] = ''
+    const result = await listUserApplicationAccess(userId)
+    if (current !== generation) return
+    rows.value = result
+    for (const row of rows.value) {
+      keys[row.appCode] = ''
+      retryKeys[row.appCode] = ''
+    }
   } catch (error) {
+    if (current !== generation) return
     if (await handleAuthError(error)) return
     failed.value = true
   } finally {
-    loading.value = false
+    if (current === generation) loading.value = false
   }
 }
 
@@ -68,38 +82,96 @@ async function toggle(row: ApplicationAccessResponse) {
     return
   }
   const target = row.desiredStatus === 'enabled' ? 'disabled' : 'enabled'
+  const current = generation
+  const userId = props.userId
   saving[row.appCode] = true
+  const confirmPermissionReuse = target === 'enabled' && row.appliedVersion != null
+  if (confirmPermissionReuse) {
+    try {
+      await ElMessageBox.confirm(copy.reuseMessage, copy.reuseTitle, { type: 'warning' })
+    } catch {
+      if (current === generation) saving[row.appCode] = false
+      return
+    }
+    if (current !== generation) return
+  }
   errors[row.appCode] = ''
   successes[row.appCode] = ''
   const idempotencyKey = keys[row.appCode] || crypto.randomUUID()
   keys[row.appCode] = idempotencyKey
   try {
     const updated = await changeUserApplicationAccess(
-      props.userId,
+      userId,
       row.appCode,
-      { status: target, version: row.version, reason },
+      { status: target, version: row.version, reason, confirmPermissionReuse },
       sessionStore.csrfToken,
       idempotencyKey,
     )
+    if (current !== generation) return
     const index = rows.value.findIndex((item) => item.appCode === row.appCode)
     rows.value[index] = updated
     reasons[row.appCode] = ''
     keys[row.appCode] = ''
     successes[row.appCode] = copy.saved
   } catch (error) {
+    if (current !== generation) return
     if (await handleAuthError(error)) return
     errors[row.appCode] =
       error instanceof ApiError && error.code === 'APPLICATION_DISABLED'
         ? copy.disabledApplication
-        : error instanceof ApiError && error.code === 'RESOURCE_VERSION_CONFLICT'
+        : error instanceof ApiError &&
+            ['RESOURCE_VERSION_CONFLICT', 'SYNC_REUSE_CONFIRMATION_REQUIRED'].includes(error.code)
           ? copy.conflict
           : copy.failed
   } finally {
-    saving[row.appCode] = false
+    if (current === generation) saving[row.appCode] = false
   }
 }
 
-onMounted(loadAccess)
+async function retrySynchronization(row: ApplicationAccessResponse) {
+  if (saving[row.appCode]) return
+  const current = generation
+  saving[row.appCode] = true
+  errors[row.appCode] = ''
+  successes[row.appCode] = ''
+  const key = retryKeys[row.appCode] || crypto.randomUUID()
+  retryKeys[row.appCode] = key
+  try {
+    const updated = await retryUserApplicationSynchronization(
+      props.userId,
+      row.appCode,
+      row.version,
+      sessionStore.csrfToken,
+      key,
+    )
+    if (current !== generation) return
+    const index = rows.value.findIndex((item) => item.appCode === row.appCode)
+    rows.value[index] = updated
+    retryKeys[row.appCode] = ''
+    successes[row.appCode] = copy.retrySaved
+  } catch (error) {
+    if (current !== generation || (await handleAuthError(error))) return
+    errors[row.appCode] =
+      error instanceof ApiError && error.status === 409
+        ? copy.conflict
+        : synchronizationError(error instanceof ApiError ? error.code : undefined)
+  } finally {
+    if (current === generation) saving[row.appCode] = false
+  }
+}
+
+watch(
+  () => props.userId,
+  () => {
+    generation++
+    for (const state of [reasons, errors, successes, keys, retryKeys, saving]) {
+      for (const key of Object.keys(state)) delete state[key]
+    }
+    void loadAccess()
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => generation++)
 </script>
 
 <template>
@@ -109,6 +181,7 @@ onMounted(loadAccess)
         <h2 id="access-title">{{ copy.title }}</h2>
         <p>{{ copy.description }}</p>
       </div>
+      <ElButton :disabled="busy || loading" @click="loadAccess">{{ copy.refresh }}</ElButton>
     </header>
     <ElSkeleton v-if="loading" animated :rows="4" />
     <StatePanel
@@ -142,9 +215,45 @@ onMounted(loadAccess)
         </div>
         <div>
           <span>{{ copy.integrationStatus }}</span
-          ><strong>{{ copy.pendingAdaptation }}</strong>
+          ><strong>{{ copy.syncStates[row.integrationStatus] ?? messages.common.unknown }}</strong>
+        </div>
+        <div>
+          <span>{{ copy.appliedStatus }}</span>
+          <strong>{{
+            row.appliedStatus === 'enabled'
+              ? messages.common.enabled
+              : row.appliedStatus === 'disabled'
+                ? messages.common.disabled
+                : messages.common.unknown
+          }}</strong>
+        </div>
+        <div>
+          <span>{{ copy.version }}</span>
+          <strong>
+            {{ formatNumber(row.version) }} /
+            {{
+              row.appliedVersion == null
+                ? messages.common.unknown
+                : formatNumber(row.appliedVersion)
+            }}
+          </strong>
+        </div>
+        <div>
+          <span>{{ copy.lastSyncedAt }}</span>
+          <strong>{{ formatDate(row.lastSyncedAt) }}</strong>
+        </div>
+        <div v-if="row.lastErrorCode" class="error">
+          <span>{{ copy.lastError }}</span>
+          <p>{{ synchronizationError(row.lastErrorCode) }}</p>
         </div>
         <template v-if="sessionStore.hasCapability('application-access:write')">
+          <ElButton
+            v-if="row.retryable"
+            :loading="saving[row.appCode]"
+            @click="retrySynchronization(row)"
+          >
+            {{ copy.retrySync }}
+          </ElButton>
           <label
             ><span>{{ copy.reason }}</span
             ><ElInput
@@ -169,7 +278,7 @@ onMounted(loadAccess)
             </ElButton>
           </div>
           <p v-if="successes[row.appCode]" class="success" role="status">
-            {{ successes[row.appCode] }}
+            {{ localizeFeedback(successes[row.appCode]) }}
           </p>
         </template>
       </article>

@@ -235,6 +235,24 @@ export function listUserApplicationAccess(userId: string): Promise<ApplicationAc
   return requestJson(`${apiBase}/users/${encodeURIComponent(userId)}/application-access`)
 }
 
+export function retryUserApplicationSynchronization(
+  userId: string,
+  appCode: string,
+  expectedVersion: number,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<ApplicationAccessResponse> {
+  return requestJson(
+    `${apiBase}/users/${encodeURIComponent(userId)}/applications/${encodeURIComponent(appCode)}/synchronizations`,
+    {
+      method: 'POST',
+      body: { expectedVersion },
+      csrfToken,
+      idempotencyKey,
+    },
+  )
+}
+
 export function changeUserApplicationAccess(
   userId: string,
   appCode: string,

@@ -276,10 +276,30 @@ export interface paths {
         get?: never;
         /**
          * 修改用户准入期望状态
-         * @description 当前只持久化期望状态和待投递命令，不启动 Outbox Worker； integrationStatus 固定为 pending_application_adaptation。
+         * @description 保存期望状态和持久化同步命令；仅显式启用并配置的目标会投递。 已纳入托管的应用必须收到匹配版本的确认后才允许新登录。 重新启用已有映射的准入须 confirmPermissionReuse=true。
          */
         put: operations["changeUserApplicationAccess"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{userId}/applications/{appCode}/synchronizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 重新安排最新准入版本的失败或待适配同步命令
+         * @description 仅管理员可操作；不改变准入版本，同一幂等键重试不重复安排。全部响应 no-store。
+         */
+        post: operations["retryUserApplicationSynchronization"];
         delete?: never;
         options?: never;
         head?: never;
@@ -553,6 +573,11 @@ export interface components {
             status: components["schemas"]["ApplicationStatus"];
             /** Format: int64 */
             version: number;
+            /**
+             * @description 明确确认重新启用可能复用应用已有的菜单及数据权限
+             * @default false
+             */
+            confirmPermissionReuse: boolean;
             reason: string;
         };
         ApplicationAccessResponse: {
@@ -564,7 +589,15 @@ export interface components {
             /** Format: int64 */
             version: number;
             /** @enum {string} */
-            integrationStatus: "pending_application_adaptation";
+            integrationStatus: "pending_application_adaptation" | "pending" | "processing" | "retry_wait" | "succeeded" | "failed" | "superseded" | "expired";
+            /** @enum {string|null} */
+            appliedStatus?: "enabled" | "disabled" | null;
+            appliedVersion?: number | null;
+            /** Format: date-time */
+            lastSyncedAt?: string | null;
+            /** @description 稳定错误码，不含内部异常或用户资料 */
+            lastErrorCode?: string | null;
+            retryable: boolean;
             syncCommandId?: string | null;
             /** Format: date-time */
             updatedAt?: string | null;
@@ -1348,7 +1381,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 期望状态已保存，业务应用仍待适配 */
+            /** @description 期望状态已保存；实际确认状态见响应字段，不代表菜单权限已配置 */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1357,6 +1390,45 @@ export interface operations {
                     "application/json": components["schemas"]["ApplicationAccessResponse"];
                 };
             };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    retryUserApplicationSynchronization: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                userId: components["parameters"]["UserId"];
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedVersion: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 已安排同步，尚不代表应用已确认 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationAccessResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];

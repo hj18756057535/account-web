@@ -10,9 +10,25 @@ import {
   previewUserImport,
   commitUserImport,
   downloadUserImportTemplate,
+  retryUserApplicationSynchronization,
 } from './account'
 
 describe('account write client', () => {
+  it('retries synchronization with version and security headers', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ version: 7, integrationStatus: 'pending' }), { status: 202 }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    await retryUserApplicationSynchronization('user/1', 'app-1', 7, 'csrf-sync', 'sync-retry-1')
+    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/users/user%2F1/applications/app-1/synchronizations')
+    expect(options.method).toBe('POST')
+    expect(JSON.parse(String(options.body))).toEqual({ expectedVersion: 7 })
+    expect(new Headers(options.headers).get('X-CSRF-Token')).toBe('csrf-sync')
+    expect(new Headers(options.headers).get('Idempotency-Key')).toBe('sync-retry-1')
+  })
   it('uploads multipart with security headers and downloads binary without JSON decoding', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -171,7 +187,7 @@ describe('account write client', () => {
     await changeUserApplicationAccess(
       'user-1',
       'analytics',
-      { status: 'enabled', version: 0, reason: '测试开通' },
+      { status: 'enabled', version: 0, reason: '测试开通', confirmPermissionReuse: false },
       'csrf-access',
       'idempotency-access',
     )
