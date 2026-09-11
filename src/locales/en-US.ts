@@ -179,6 +179,7 @@ export const enUS: Messages = {
     protocolSso: 'SSO Ticket',
     protocolAdminTicket: 'Admin Ticket',
     protocolUserSync: 'User status synchronization',
+    protocolMenuPermission: 'Menu permission management',
     status: 'Status',
     secretState: 'Secret status',
     secretActive: 'Active',
@@ -266,6 +267,30 @@ export const enUS: Messages = {
     conflict: 'Access has changed. Reload before confirming again.',
     empty: 'No registered applications',
   },
+  menuPermissions: {
+    open: 'Configure menu permissions',
+    title: 'Application menu permissions',
+    description:
+      'Account-managed permissions are saved as a complete set. Permissions inherited from native application roles remain read-only.',
+    legend: 'Permission source legend',
+    managed: 'Managed by Account',
+    inherited: 'Inherited, read-only',
+    loadFailed: 'Unable to load menu permissions',
+    unavailable:
+      'The application permission service is unavailable. Check the application integration and retry.',
+    prerequisite:
+      'Enable user access and wait for application synchronization before configuring menu permissions.',
+    unmanageable: 'This application user cannot be managed by Account menu permissions.',
+    unsupported: 'The application does not support the current menu permission protocol.',
+    invalid: 'The application catalog or submitted permission set does not satisfy the protocol.',
+    empty: 'No configurable menus',
+    emptyDescription: 'The application returned an empty permission catalog.',
+    saved: 'Menu permissions saved and confirmed by the application',
+    saveFailed: 'Save failed. The application permission was not reported as successful.',
+    conflict: 'The catalog or user permissions changed. Reload before saving again.',
+    reload: 'Reload permissions',
+    nodeTypes: { GROUP: 'Group', MENU: 'Menu', ACTION: 'Action' },
+  },
   audit: {
     title: 'Audit logs',
     description: 'Filter by exact operator, operation or trace ID. Newest records appear first.',
@@ -309,6 +334,7 @@ export const enUS: Messages = {
       APPLICATION_ACCESS_CHANGED: 'Change application access',
       APPLICATION_SYNC_RETRIED: 'Retry application synchronization',
       APPLICATION_SYNC_CONFIRMED: 'Confirm application synchronization',
+      APPLICATION_MENU_PERMISSION_REPLACED: 'Change application menu permissions',
     },
   },
   errors: {

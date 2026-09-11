@@ -59,7 +59,9 @@ function reset() {
 function protocolLabel(protocol: string) {
   if (protocol === 'sso') return copy.protocolSso
   if (protocol === 'admin_ticket') return copy.protocolAdminTicket
-  return copy.protocolUserSync
+  if (protocol === 'user_sync') return copy.protocolUserSync
+  if (protocol === 'menu_permission_v1') return copy.protocolMenuPermission
+  return protocol
 }
 
 onMounted(loadApplications)

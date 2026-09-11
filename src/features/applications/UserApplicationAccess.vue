@@ -13,6 +13,7 @@ import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { formatDate, formatNumber, localizeFeedback, messages } from '@/locales'
+import MenuPermissionDialog from './MenuPermissionDialog.vue'
 import { synchronizationError } from './synchronization'
 
 const props = defineProps<{ userId: string }>()
@@ -66,6 +67,17 @@ async function handleAuthError(error: unknown) {
     return true
   }
   return false
+}
+
+function canManageMenus(row: ApplicationAccessResponse) {
+  return (
+    row.applicationStatus === 'enabled' &&
+    row.desiredStatus === 'enabled' &&
+    row.integrationStatus === 'succeeded' &&
+    row.appliedStatus === 'enabled' &&
+    row.appliedVersion === row.version &&
+    row.protocolCapabilities.includes('menu_permission_v1')
+  )
 }
 
 function resetAttempt(appCode: string) {
@@ -247,6 +259,12 @@ onBeforeUnmount(() => generation++)
           <p>{{ synchronizationError(row.lastErrorCode) }}</p>
         </div>
         <template v-if="sessionStore.hasCapability('application-access:write')">
+          <MenuPermissionDialog
+            v-if="canManageMenus(row)"
+            :user-id="userId"
+            :access="row"
+            @auth-error="handleAuthError"
+          />
           <ElButton
             v-if="row.retryable"
             :loading="saving[row.appCode]"

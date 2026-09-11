@@ -306,6 +306,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/{userId}/applications/{appCode}/menu-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 查询已准入用户在目标应用中的菜单权限
+         * @description 仅管理员可调用。用户准入、应用同步、本地身份映射和 menu_permission_v1 capability 均有效时，Account 才会调用应用 Provider；Account 不保存菜单明细。
+         */
+        get: operations["getUserApplicationMenuPermissions"];
+        /**
+         * 整集替换 Account 在目标应用中托管的菜单权限
+         * @description 仅管理员可调用；同一 Idempotency-Key 用于 Account 管理 API 和目标 Provider 的安全重试。 空 selectedCodes 仅清空 Account 托管项，不影响应用原生角色权限。
+         */
+        put: operations["replaceUserApplicationMenuPermissions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/openapi/sso/tickets/exchange": {
         parameters: {
             query?: never;
@@ -495,7 +519,7 @@ export interface components {
         /** @enum {string} */
         ApplicationStatus: "enabled" | "disabled";
         /** @enum {string} */
-        ApplicationProtocolCapability: "sso" | "admin_ticket" | "user_sync";
+        ApplicationProtocolCapability: "sso" | "admin_ticket" | "user_sync" | "menu_permission_v1";
         /** @enum {string} */
         ApplicationSecretState: "active" | "revoked";
         CreateApplicationRequest: {
@@ -585,6 +609,7 @@ export interface components {
             appCode: string;
             applicationName: string;
             applicationStatus: components["schemas"]["ApplicationStatus"];
+            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
             desiredStatus: components["schemas"]["ApplicationStatus"];
             /** Format: int64 */
             version: number;
@@ -601,6 +626,36 @@ export interface components {
             syncCommandId?: string | null;
             /** Format: date-time */
             updatedAt?: string | null;
+        };
+        ReplaceMenuPermissionRequest: {
+            /** Format: int64 */
+            expectedAccessVersion: number;
+            expectedCatalogRevision: string;
+            expectedPermissionRevision: string;
+            selectedCodes: string[];
+        };
+        MenuPermissionResponse: {
+            /** Format: int64 */
+            accessVersion: number;
+            catalogRevision: string;
+            permissionRevision: string;
+            /** @constant */
+            assignmentMode: "ADDITIVE";
+            nodes: components["schemas"]["MenuPermissionNode"][];
+            selectedCodes: string[];
+            inheritedCodes: string[];
+        };
+        MenuPermissionNode: {
+            code: string;
+            parentCode?: string | null;
+            /** @enum {string} */
+            nodeType: "GROUP" | "MENU" | "ACTION";
+            defaultName: string;
+            localizedNames: {
+                [key: string]: string;
+            };
+            assignable: boolean;
+            sort: number;
         };
         ErrorResponse: {
             /** @example AUTHENTICATION_REQUIRED */
@@ -1432,6 +1487,107 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getUserApplicationMenuPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 应用返回的当前权限快照和准入版本 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuPermissionResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            /** @description 应用 Provider 不可用、超时或返回非法响应 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    replaceUserApplicationMenuPermissions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                userId: components["parameters"]["UserId"];
+                appCode: components["parameters"]["AppCode"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceMenuPermissionRequest"];
+            };
+        };
+        responses: {
+            /** @description 应用事务提交后返回的归一化权限快照 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MenuPermissionResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description 授权集合超过协议限制 */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+            /** @description 目标应用不支持当前协议版本 */
+            426: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 应用 Provider 不可用、超时或返回非法响应 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
         };
     };
     exchangeSsoTicket: {

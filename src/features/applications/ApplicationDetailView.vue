@@ -191,6 +191,7 @@ function protocolLabel(protocol: string) {
       sso: copy.protocolSso,
       admin_ticket: copy.protocolAdminTicket,
       user_sync: copy.protocolUserSync,
+      menu_permission_v1: copy.protocolMenuPermission,
     }[protocol] ?? protocol
   )
 }

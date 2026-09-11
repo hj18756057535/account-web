@@ -6,14 +6,62 @@ import {
   createApplication,
   createUser,
   getAuditEvent,
+  getUserApplicationMenuPermissions,
   listAuditEvents,
   previewUserImport,
   commitUserImport,
   downloadUserImportTemplate,
   retryUserApplicationSynchronization,
+  replaceUserApplicationMenuPermissions,
 } from './account'
 
 describe('account write client', () => {
+  it('queries and replaces menu permissions through Account with encoded paths and write guards', async () => {
+    const snapshot = {
+      accessVersion: 7,
+      catalogRevision: 'catalog-1',
+      permissionRevision: 'permission-1',
+      assignmentMode: 'ADDITIVE',
+      nodes: [],
+      selectedCodes: [],
+      inheritedCodes: [],
+    }
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => new Response(JSON.stringify(snapshot), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await getUserApplicationMenuPermissions('user/1', 'app one')
+    await replaceUserApplicationMenuPermissions(
+      'user/1',
+      'app one',
+      {
+        expectedAccessVersion: 7,
+        expectedCatalogRevision: 'catalog-1',
+        expectedPermissionRevision: 'permission-1',
+        selectedCodes: ['menu:view'],
+      },
+      'csrf-menu',
+      'idem-menu',
+    )
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      '/api/users/user%2F1/applications/app%20one/menu-permissions',
+    )
+    const [url, options] = fetchMock.mock.calls[1] as [string, RequestInit]
+    expect(url).toBe('/api/users/user%2F1/applications/app%20one/menu-permissions')
+    expect(options.method).toBe('PUT')
+    expect(JSON.parse(String(options.body))).toMatchObject({
+      expectedAccessVersion: 7,
+      expectedCatalogRevision: 'catalog-1',
+      expectedPermissionRevision: 'permission-1',
+      selectedCodes: ['menu:view'],
+    })
+    const headers = new Headers(options.headers)
+    expect(headers.get('X-CSRF-Token')).toBe('csrf-menu')
+    expect(headers.get('Idempotency-Key')).toBe('idem-menu')
+  })
+
   it('retries synchronization with version and security headers', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

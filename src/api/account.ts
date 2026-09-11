@@ -17,6 +17,9 @@ export type ChangeApplicationStatusRequest = components['schemas']['ChangeApplic
 export type VersionedReasonRequest = components['schemas']['VersionedReasonRequest']
 export type ApplicationAccessResponse = components['schemas']['ApplicationAccessResponse']
 export type ChangeApplicationAccessRequest = components['schemas']['ChangeApplicationAccessRequest']
+export type MenuPermissionResponse = components['schemas']['MenuPermissionResponse']
+export type MenuPermissionNode = components['schemas']['MenuPermissionNode']
+export type ReplaceMenuPermissionRequest = components['schemas']['ReplaceMenuPermissionRequest']
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
 
@@ -267,6 +270,34 @@ export function changeUserApplicationAccess(
       body: request,
       csrfToken,
       idempotencyKey,
+    },
+  )
+}
+
+export function getUserApplicationMenuPermissions(
+  userId: string,
+  appCode: string,
+): Promise<MenuPermissionResponse> {
+  return requestJson(
+    `${apiBase}/users/${encodeURIComponent(userId)}/applications/${encodeURIComponent(appCode)}/menu-permissions`,
+  )
+}
+
+export function replaceUserApplicationMenuPermissions(
+  userId: string,
+  appCode: string,
+  request: ReplaceMenuPermissionRequest,
+  csrfToken: string,
+  idempotencyKey: string,
+): Promise<MenuPermissionResponse> {
+  return requestJson(
+    `${apiBase}/users/${encodeURIComponent(userId)}/applications/${encodeURIComponent(appCode)}/menu-permissions`,
+    {
+      method: 'PUT',
+      body: request,
+      csrfToken,
+      idempotencyKey,
+      timeoutMs: 15_000,
     },
   )
 }

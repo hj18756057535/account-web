@@ -49,12 +49,16 @@ describe('application editor route rendering', () => {
     const wrapper = await renderEditor('/applications/new')
     const sso = wrapper.get<HTMLInputElement>('.protocol-options input[value="sso"]')
     const sync = wrapper.get<HTMLInputElement>('.protocol-options input[value="user_sync"]')
+    const menu = wrapper.get<HTMLInputElement>(
+      '.protocol-options input[value="menu_permission_v1"]',
+    )
 
-    expect(wrapper.findAll('.protocol-options .el-checkbox.is-bordered')).toHaveLength(3)
+    expect(wrapper.findAll('.protocol-options .el-checkbox.is-bordered')).toHaveLength(4)
     expect(sso.element.checked).toBe(true)
     await sso.setValue(false)
     expect(sso.element.checked).toBe(false)
     expect(sync.element.checked).toBe(true)
+    expect(menu.element.checked).toBe(false)
     await sso.setValue(true)
     expect(sso.element.checked).toBe(true)
   })

@@ -317,6 +317,9 @@ onBeforeUnmount(() => {
           <ElCheckbox value="sso" border>{{ copy.protocolSso }}</ElCheckbox>
           <ElCheckbox value="admin_ticket" border>{{ copy.protocolAdminTicket }}</ElCheckbox>
           <ElCheckbox value="user_sync" border>{{ copy.protocolUserSync }}</ElCheckbox>
+          <ElCheckbox value="menu_permission_v1" border>{{
+            copy.protocolMenuPermission
+          }}</ElCheckbox>
         </ElCheckboxGroup>
         <small v-if="fieldErrors.protocolCapabilities" role="alert">{{
           localizeFeedback(fieldErrors.protocolCapabilities)
