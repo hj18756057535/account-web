@@ -14,7 +14,7 @@
 
 ## 硬规则
 
-1. 先读取协调工作区中 ACCOUNT-001 的 Spec、Design、Plan、TASKS 和技术画像，再实现当前最小切片。
+1. 先读取工作区 `../AGENTS.md` 和 [当前计划](../docs/account-center/账号中心-计划.md)，按范围引用已有需求、设计与技术画像，再实现已授权的最小切片；不为小改重建任务或审批流程。
 2. API 类型必须来自批准的 OpenAPI；不得根据旧字段名猜 DTO，也不得在页面里维护平行 HTTP 客户端。
 3. 路由与按钮隐藏只改善体验，不能代替后端 Session、CSRF、角色和对象范围校验。
 4. 不在 localStorage、sessionStorage、日志、截图或测试夹具中保存 Secret、Ticket、Token、Session ID 或真实用户数据。
@@ -32,11 +32,10 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-pnpm test:e2e
 git diff --check
 ```
 
-每个切片按适用范围运行定向测试，并在协调工作区的 `TEST-REPORT.md` 记录命令、退出码和证据。Playwright 必须说明浏览器、视口、服务地址和夹具。
+按改动范围选择相关命令和定向测试，结果放在当前计划或回复中，说明命令、退出码及未验证项。默认不运行浏览器、Playwright/E2E、页面交互或截图，页面由开发者验证；只有用户明确要求时运行 `pnpm test:e2e`，届时记录浏览器、视口、服务地址和夹具。
 
 ## 最终回复
 

@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 管理概览、运行摘要与确定性规则洞察
+         * @description 管理员与审计员只读；所有响应 no-store。计数为采样时数据，不是跨请求事务快照。 准入统计 desired_status=enabled，不代表下游同步成功。失败窗口为最近24小时。 长期禁用为 disabled 且 updated_at 早于30天；不是连续禁用时长证明。 洞察可由 account.web.insights.enabled=false 关闭。下游服务不进行主动探测。
+         */
+        get: operations["getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/user-imports/template": {
         parameters: {
             query?: never;
@@ -405,6 +425,43 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        OverviewResponse: {
+            /** Format: date-time */
+            sampledAt: string;
+            /** Format: date-time */
+            failuresSince: string;
+            counts: components["schemas"]["OverviewCounts"];
+            /** Format: int64 */
+            recentFailures: number;
+            insightsEnabled: boolean;
+            insights: {
+                /** @enum {string} */
+                rule: "missing_callbacks" | "long_disabled_users" | "repeated_failures";
+                /** Format: int64 */
+                count: number;
+            }[];
+            failureEvents: components["schemas"]["AuditEventResponse"][];
+            /** @enum {string} */
+            accountDataStatus: "available";
+            /** @enum {string} */
+            downstreamStatus: "not_checked";
+        };
+        OverviewCounts: {
+            /** Format: int64 */
+            users: number;
+            /** Format: int64 */
+            disabledUsers: number;
+            /** Format: int64 */
+            applications: number;
+            /** Format: int64 */
+            disabledApplications: number;
+            /** Format: int64 */
+            grantedAccess: number;
+            /** Format: int64 */
+            missingCallbacks: number;
+            /** Format: int64 */
+            longDisabledUsers: number;
+        };
         UserImportPreview: {
             /** Format: uuid */
             importId: string;
@@ -752,6 +809,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 聚合数据，最近最多10条脱敏失败事件 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 数据不可读取，不返回伪造的零值 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     downloadUserImportTemplate: {
         parameters: {
             query?: never;

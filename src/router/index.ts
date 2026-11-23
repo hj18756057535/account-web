@@ -16,7 +16,13 @@ const router = createRouter({
       component: ConsoleShell,
       meta: { requiresAuth: true },
       children: [
-        { path: '', redirect: { name: 'users' } },
+        { path: '', redirect: { name: 'overview' } },
+        {
+          path: 'overview',
+          name: 'overview',
+          component: () => import('@/features/overview/OverviewView.vue'),
+          meta: { requiresAuth: true, capability: 'audit:read' },
+        },
         {
           path: 'users',
           name: 'users',

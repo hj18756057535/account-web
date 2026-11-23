@@ -141,7 +141,10 @@ function totalLabel(total: number) {
   return copy.total.replace('{total}', formatNumber(total))
 }
 
-onMounted(search)
+onMounted(() => {
+  search()
+  if (typeof route.query.eventId === 'string') void openDetail(route.query.eventId)
+})
 onUnmounted(() => {
   listRequest++
   detailRequest++

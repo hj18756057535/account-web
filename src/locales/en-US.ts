@@ -1,6 +1,40 @@
 import type { Messages } from './types'
 
 export const enUS: Messages = {
+  overview: {
+    title: 'Overview',
+    description: 'Review Account data, recent failures, and configuration needing attention.',
+    sampledAt: 'Sampled at',
+    users: 'Total users',
+    disabledUsers: 'Disabled users',
+    applications: 'Total applications',
+    disabledApplications: 'Disabled applications',
+    grantedAccess: 'Desired enabled access',
+    accessNote:
+      'Access counts reflect configuration intent, not completed downstream synchronization.',
+    runtime: 'Runtime status',
+    accountAvailable: 'Account data is readable',
+    downstreamUnknown:
+      'Pilot application connectivity has not been checked; verify in the real environment.',
+    failed: 'Overview unavailable',
+    failedDescription: 'Current data could not be read. Please retry.',
+    insights: 'Rule insights',
+    noInsights: 'No configured rules are currently triggered.',
+    insightsDisabled: 'Rule insights are disabled on the server.',
+    count: 'Matching records',
+    rules: {
+      missing_callbacks: 'Enabled SSO-capable applications without a callback URL',
+      long_disabled_users:
+        'Disabled users last updated over 30 days ago (not continuous disabled duration)',
+      repeated_failures: 'At least 3 failure events recorded in the last 24 hours',
+    },
+    evidence: 'View related records',
+    failures: 'Failures in the last 24 hours',
+    failureWindow: 'Window starts at',
+    failureLimit: 'Showing up to 10 recent events. See the audit log for all records.',
+    noFailures: 'No failures have been recorded in this time window.',
+    empty: 'No users or applications have been registered yet.',
+  },
   imports: {
     title: 'Import users',
     description:
@@ -301,6 +335,7 @@ export const enUS: Messages = {
     targetType: 'Target type',
     allTypes: 'All types',
     targetTypes: {
+      MANAGEMENT_SESSION: 'Management session',
       USER_IMPORT: 'User import',
       USER: 'User',
       APPLICATION: 'Application',
@@ -322,6 +357,10 @@ export const enUS: Messages = {
     notFound: 'Audit record not found',
     outcomes: { success: 'Success', failure: 'Failure', unknown: 'Not recorded' },
     operations: {
+      MANAGEMENT_LOGIN_SUCCEEDED: 'Management login succeeded',
+      MANAGEMENT_LOGIN_FAILED: 'Management login failed',
+      MANAGEMENT_ACCESS_DENIED: 'Management access denied',
+      MANAGEMENT_LOGOUT: 'Management logout',
       USER_CREATED: 'Create user',
       USER_IMPORT_COMMITTED: 'Import users',
       USER_UPDATED: 'Update user',

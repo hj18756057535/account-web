@@ -23,6 +23,12 @@ export type ReplaceMenuPermissionRequest = components['schemas']['ReplaceMenuPer
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
 
+export type OverviewResponse = components['schemas']['OverviewResponse']
+
+export function getOverview(): Promise<OverviewResponse> {
+  return requestJson(`${apiBase}/overview`)
+}
+
 export type UserImportPreview = components['schemas']['UserImportPreview']
 export type UserImportResult = components['schemas']['UserImportResult']
 

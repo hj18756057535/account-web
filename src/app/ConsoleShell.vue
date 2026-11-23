@@ -34,6 +34,14 @@ async function signOut() {
       </div>
 
       <nav class="console-nav">
+        <RouterLink
+          v-if="sessionStore.hasCapability('audit:read')"
+          class="nav-item"
+          :to="{ name: 'overview' }"
+        >
+          <span class="nav-icon" aria-hidden="true">O</span>
+          <span>{{ copy.overview.title }}</span>
+        </RouterLink>
         <RouterLink class="nav-item" :to="{ name: 'users' }">
           <span class="nav-icon" aria-hidden="true">U</span>
           <span>{{ copy.navigation.users }}</span>
