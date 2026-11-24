@@ -1,7 +1,7 @@
 import { createPinia } from 'pinia'
 import { enableAutoUnmount, flushPromises, shallowMount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as api from '@/api/account'
 import { ApiError } from '@/api/http'
@@ -13,6 +13,7 @@ import { zhCN } from '@/locales/zh-CN'
 import OverviewView from './OverviewView.vue'
 
 enableAutoUnmount(afterEach)
+beforeEach(() => vi.spyOn(api, 'listApplications').mockResolvedValue([]))
 afterEach(() => {
   vi.restoreAllMocks()
   setLocale('zh-CN')
@@ -28,7 +29,6 @@ function snapshot(): api.OverviewResponse {
       applications: 0,
       disabledApplications: 0,
       grantedAccess: 0,
-      missingCallbacks: 0,
       longDisabledUsers: 0,
     },
     recentFailures: 0,
@@ -64,23 +64,30 @@ describe('overview', () => {
     resolve(snapshot())
     await flushPromises()
     expect(wrapper.text()).toContain(zhCN.overview.empty)
-    expect(wrapper.text()).toContain(zhCN.overview.noInsights)
+    expect(wrapper.findAll('svg[role="img"]')).toHaveLength(2)
+    expect(wrapper.find('.chart-value').attributes('stroke-dasharray')).toBe('0 100')
     setLocale('en-US')
     await flushPromises()
-    expect(wrapper.text()).toContain(enUS.overview.downstreamUnknown)
+    expect(wrapper.text()).toContain(enUS.overview.userDistribution)
+    expect(wrapper.text()).not.toContain(enUS.overview.downstreamUnknown)
   })
 
-  it('retries failures and distinguishes disabled insights from no findings', async () => {
+  it('retries failures and renders actual status proportions', async () => {
     vi.spyOn(api, 'getOverview')
       .mockRejectedValueOnce(new Error('unavailable'))
-      .mockResolvedValue({ ...snapshot(), insightsEnabled: false })
+      .mockResolvedValue({
+        ...snapshot(),
+        counts: { ...snapshot().counts, users: 10, disabledUsers: 2 },
+        insightsEnabled: false,
+      })
     const { wrapper } = await render()
     await flushPromises()
     expect(wrapper.findComponent(StatePanel).props('title')).toBe(zhCN.overview.failed)
     await wrapper.find('el-button-stub').trigger('click')
     await flushPromises()
-    expect(wrapper.text()).toContain(zhCN.overview.insightsDisabled)
-    expect(wrapper.text()).not.toContain(zhCN.overview.noInsights)
+    expect(wrapper.find('.chart-value').attributes('stroke-dasharray')).toBe('80 100')
+    expect(wrapper.find('.chart-legend').text()).toContain('8')
+    expect(wrapper.text()).toContain(zhCN.overview.applicationTable)
   })
 
   it('routes permission failures to the forbidden page', async () => {

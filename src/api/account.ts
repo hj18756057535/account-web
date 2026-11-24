@@ -23,6 +23,43 @@ export type ReplaceMenuPermissionRequest = components['schemas']['ReplaceMenuPer
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
 
+export type DirectorySnapshot = components['schemas']['DirectorySnapshot']
+export type DirectoryUser = components['schemas']['DirectoryUser']
+export type DirectoryImportPreview = components['schemas']['DirectoryImportPreview']
+export type DirectoryImportResult = components['schemas']['DirectoryImportResult']
+
+export function checkApplicationConnection(appCode: string, csrfToken: string) {
+  return requestJson<components['schemas']['ConnectionResult']>(
+    `${apiBase}/applications/${encodeURIComponent(appCode)}/connection-check`,
+    { method: 'POST', csrfToken },
+  )
+}
+
+export function previewApplicationDirectory(appCode: string, csrfToken: string) {
+  return requestJson<DirectoryImportPreview>(
+    `${apiBase}/applications/${encodeURIComponent(appCode)}/directory-imports`,
+    { method: 'POST', csrfToken, timeoutMs: 90_000 },
+  )
+}
+
+export function commitApplicationDirectory(
+  appCode: string,
+  importId: string,
+  csrfToken: string,
+  idempotencyKey: string,
+) {
+  return requestJson<DirectoryImportResult>(
+    `${apiBase}/applications/${encodeURIComponent(appCode)}/directory-imports/${encodeURIComponent(importId)}/commit`,
+    { method: 'POST', csrfToken, idempotencyKey, timeoutMs: 30_000 },
+  )
+}
+
+export function getApplicationDirectory(appCode: string) {
+  return requestJson<DirectorySnapshot>(
+    `${apiBase}/applications/${encodeURIComponent(appCode)}/directory`,
+  )
+}
+
 export type OverviewResponse = components['schemas']['OverviewResponse']
 
 export function getOverview(): Promise<OverviewResponse> {

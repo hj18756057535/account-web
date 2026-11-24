@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElButton, ElDialog, ElSkeleton, ElTag, ElTree, type TreeInstance } from 'element-plus'
 
 import {
@@ -23,8 +23,9 @@ interface PermissionTreeNode extends MenuPermissionNode {
 const props = defineProps<{
   userId: string
   access: ApplicationAccessResponse
+  autoOpen?: boolean
 }>()
-const emit = defineEmits<{ authError: [error: ApiError] }>()
+const emit = defineEmits<{ authError: [error: ApiError]; opened: [] }>()
 const sessionStore = useSessionStore()
 const copy = messages.menuPermissions
 const visible = ref(false)
@@ -71,6 +72,7 @@ function applySnapshot(value: MenuPermissionResponse) {
 
 async function open() {
   visible.value = true
+  emit('opened')
   await load()
 }
 
@@ -175,6 +177,13 @@ function close() {
   saving.value = false
 }
 
+watch(
+  () => props.autoOpen,
+  (value) => {
+    if (value) void open()
+  },
+  { immediate: true },
+)
 onBeforeUnmount(() => generation++)
 </script>
 

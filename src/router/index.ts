@@ -54,6 +54,18 @@ const router = createRouter({
           meta: { requiresAuth: true, capability: 'applications:read' },
         },
         {
+          path: 'application-access',
+          name: 'application-access',
+          component: () => import('@/features/applications/ApplicationAccessView.vue'),
+          meta: { requiresAuth: true, capability: 'application-access:read' },
+        },
+        {
+          path: 'application-data',
+          name: 'application-data',
+          component: () => import('@/features/applications/ApplicationDataView.vue'),
+          meta: { requiresAuth: true, capability: 'applications:read' },
+        },
+        {
           path: 'applications/new',
           name: 'application-create',
           component: () => import('@/features/applications/ApplicationFormView.vue'),

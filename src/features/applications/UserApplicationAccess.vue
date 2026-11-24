@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElInput, ElMessageBox, ElSkeleton, ElTag } from 'element-plus'
+import { ElButton, ElMessageBox, ElSkeleton, ElTag } from 'element-plus'
 
 import {
   changeUserApplicationAccess,
@@ -16,15 +16,18 @@ import { formatDate, formatNumber, localizeFeedback, messages } from '@/locales'
 import MenuPermissionDialog from './MenuPermissionDialog.vue'
 import { synchronizationError } from './synchronization'
 
-const props = defineProps<{ userId: string }>()
+const props = defineProps<{ userId: string; appCode?: string }>()
 const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
 const copy = messages.access
 const rows = ref<ApplicationAccessResponse[]>([])
+const visibleRows = computed(() =>
+  props.appCode ? rows.value.filter((row) => row.appCode === props.appCode) : rows.value,
+)
+const pendingMenuAppCode = ref('')
 const loading = ref(true)
 const failed = ref(false)
-const reasons = reactive<Record<string, string>>({})
 const errors = reactive<Record<string, string>>({})
 const successes = reactive<Record<string, string>>({})
 const keys = reactive<Record<string, string>>({})
@@ -32,13 +35,16 @@ const retryKeys = reactive<Record<string, string>>({})
 const saving = reactive<Record<string, boolean>>({})
 const busy = computed(() => Object.values(saving).some(Boolean))
 let generation = 0
+let refreshTimer: ReturnType<typeof setTimeout> | undefined
 
-async function loadAccess() {
+async function loadAccess(silent = false) {
   if (busy.value) return
   const current = ++generation
   const userId = props.userId
-  loading.value = true
-  failed.value = false
+  if (!silent) {
+    loading.value = true
+    failed.value = false
+  }
   try {
     const result = await listUserApplicationAccess(userId)
     if (current !== generation) return
@@ -50,9 +56,25 @@ async function loadAccess() {
   } catch (error) {
     if (current !== generation) return
     if (await handleAuthError(error)) return
-    failed.value = true
+    if (!silent) failed.value = true
   } finally {
-    if (current === generation) loading.value = false
+    if (current === generation) {
+      loading.value = false
+      scheduleRefresh()
+    }
+  }
+}
+
+function scheduleRefresh() {
+  clearTimeout(refreshTimer)
+  if (
+    !busy.value &&
+    !loading.value &&
+    rows.value.some((row) =>
+      ['pending', 'processing', 'retry_wait'].includes(row.integrationStatus),
+    )
+  ) {
+    refreshTimer = setTimeout(() => void loadAccess(true), 2_000)
   }
 }
 
@@ -80,19 +102,8 @@ function canManageMenus(row: ApplicationAccessResponse) {
   )
 }
 
-function resetAttempt(appCode: string) {
-  keys[appCode] = ''
-  errors[appCode] = ''
-  successes[appCode] = ''
-}
-
 async function toggle(row: ApplicationAccessResponse) {
   if (saving[row.appCode]) return
-  const reason = reasons[row.appCode]?.trim()
-  if (!reason) {
-    errors[row.appCode] = messages.users.statusReasonRequired
-    return
-  }
   const target = row.desiredStatus === 'enabled' ? 'disabled' : 'enabled'
   const current = generation
   const userId = props.userId
@@ -115,16 +126,19 @@ async function toggle(row: ApplicationAccessResponse) {
     const updated = await changeUserApplicationAccess(
       userId,
       row.appCode,
-      { status: target, version: row.version, reason, confirmPermissionReuse },
+      { status: target, version: row.version, confirmPermissionReuse },
       sessionStore.csrfToken,
       idempotencyKey,
     )
     if (current !== generation) return
     const index = rows.value.findIndex((item) => item.appCode === row.appCode)
     rows.value[index] = updated
-    reasons[row.appCode] = ''
+
     keys[row.appCode] = ''
     successes[row.appCode] = copy.saved
+    if (target === 'enabled' && row.protocolCapabilities.includes('menu_permission_v1')) {
+      pendingMenuAppCode.value = row.appCode
+    }
   } catch (error) {
     if (current !== generation) return
     if (await handleAuthError(error)) return
@@ -176,14 +190,20 @@ watch(
   () => props.userId,
   () => {
     generation++
-    for (const state of [reasons, errors, successes, keys, retryKeys, saving]) {
+    pendingMenuAppCode.value = ''
+    clearTimeout(refreshTimer)
+    for (const state of [errors, successes, keys, retryKeys, saving]) {
       for (const key of Object.keys(state)) delete state[key]
     }
     void loadAccess()
   },
   { immediate: true },
 )
-onBeforeUnmount(() => generation++)
+watch([rows, busy], scheduleRefresh, { deep: true })
+onBeforeUnmount(() => {
+  generation++
+  clearTimeout(refreshTimer)
+})
 </script>
 
 <template>
@@ -191,9 +211,8 @@ onBeforeUnmount(() => generation++)
     <header>
       <div>
         <h2 id="access-title">{{ copy.title }}</h2>
-        <p>{{ copy.description }}</p>
       </div>
-      <ElButton :disabled="busy || loading" @click="loadAccess">{{ copy.refresh }}</ElButton>
+      <ElButton :disabled="busy || loading" @click="loadAccess()">{{ copy.refresh }}</ElButton>
     </header>
     <ElSkeleton v-if="loading" animated :rows="4" />
     <StatePanel
@@ -203,15 +222,18 @@ onBeforeUnmount(() => generation++)
       tone="danger"
     >
       <template #actions
-        ><ElButton @click="loadAccess">{{ messages.common.retry }}</ElButton></template
+        ><ElButton @click="loadAccess()">{{ messages.common.retry }}</ElButton></template
       >
     </StatePanel>
-    <StatePanel v-else-if="!rows.length" :title="copy.empty" :description="copy.description" />
+    <StatePanel v-else-if="!visibleRows.length" :title="copy.empty" description="" />
     <div v-else class="access-list">
-      <article v-for="row in rows" :key="row.appCode">
+      <article v-for="row in visibleRows" :key="row.appCode">
         <div class="identity">
           <strong>{{ row.applicationName }}</strong
           ><span>{{ row.appCode }}</span>
+          <ElTag v-if="!row.protocolCapabilities.includes('user_sync')" type="warning" size="small">
+            {{ copy.syncStates.not_required }}
+          </ElTag>
         </div>
         <div>
           <span>{{ copy.applicationStatus }}</span
@@ -227,7 +249,11 @@ onBeforeUnmount(() => generation++)
         </div>
         <div>
           <span>{{ copy.integrationStatus }}</span
-          ><strong>{{ copy.syncStates[row.integrationStatus] ?? messages.common.unknown }}</strong>
+          ><strong>{{
+            row.version === 0
+              ? copy.notAuthorized
+              : (copy.syncStates[row.integrationStatus] ?? messages.common.unknown)
+          }}</strong>
         </div>
         <div>
           <span>{{ copy.appliedStatus }}</span>
@@ -263,8 +289,24 @@ onBeforeUnmount(() => generation++)
             v-if="canManageMenus(row)"
             :user-id="userId"
             :access="row"
+            :auto-open="pendingMenuAppCode === row.appCode"
+            @opened="pendingMenuAppCode = ''"
             @auth-error="handleAuthError"
           />
+          <ElButton v-else-if="row.protocolCapabilities.includes('menu_permission_v1')" disabled>
+            {{ row.desiredStatus === 'enabled' ? copy.waitForSync : messages.menuPermissions.open }}
+          </ElButton>
+          <RouterLink
+            v-if="
+              !row.protocolCapabilities.includes('user_sync') &&
+              sessionStore.hasCapability('applications:write')
+            "
+            :to="{ name: 'application-edit', params: { appCode: row.appCode } }"
+            >{{ copy.configureIntegration }}</RouterLink
+          >
+          <RouterLink :to="{ name: 'application-data', query: { appCode: row.appCode } }">
+            {{ messages.navigation.data }}
+          </RouterLink>
           <ElButton
             v-if="row.retryable"
             :loading="saving[row.appCode]"
@@ -272,15 +314,6 @@ onBeforeUnmount(() => generation++)
           >
             {{ copy.retrySync }}
           </ElButton>
-          <label
-            ><span>{{ copy.reason }}</span
-            ><ElInput
-              v-model="reasons[row.appCode]"
-              :placeholder="copy.reasonPlaceholder"
-              maxlength="256"
-              :disabled="saving[row.appCode]"
-              @input="resetAttempt(row.appCode)"
-          /></label>
           <ElButton
             :type="row.desiredStatus === 'enabled' ? 'danger' : 'primary'"
             :disabled="row.applicationStatus === 'disabled' && row.desiredStatus !== 'enabled'"
@@ -291,7 +324,7 @@ onBeforeUnmount(() => generation++)
           </ElButton>
           <div v-if="errors[row.appCode]" class="error" role="alert">
             <p>{{ localizeFeedback(errors[row.appCode]) }}</p>
-            <ElButton :disabled="saving[row.appCode]" @click="loadAccess">
+            <ElButton :disabled="saving[row.appCode]" @click="loadAccess()">
               {{ messages.common.retry }}
             </ElButton>
           </div>
@@ -341,8 +374,7 @@ onBeforeUnmount(() => generation++)
   background: var(--color-surface);
 }
 
-.access-list article > div,
-.access-list label {
+.access-list article > div {
   display: grid;
   gap: var(--space-2);
 }
@@ -352,18 +384,9 @@ onBeforeUnmount(() => generation++)
   font-size: 0.78rem;
 }
 
-.access-list label > span {
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-}
-
 .access-list article > div > span {
   color: var(--color-text-muted);
   font-size: 0.75rem;
-}
-
-.access-list label {
-  grid-column: 1 / -2;
 }
 
 .error,
@@ -382,10 +405,6 @@ onBeforeUnmount(() => generation++)
 @media (width <= 56rem) {
   .access-list article {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .access-list label {
-    grid-column: 1 / -1;
   }
 }
 </style>

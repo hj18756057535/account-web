@@ -1,6 +1,6 @@
 # account-web
 
-Account Center 独立管理前端。当前包含登录态、全局用户管理、应用登记/编辑/启停、一次性 Secret 创建/轮换/撤销，以及用户应用准入期望状态。准入只记录 Account 期望，固定显示“待应用适配”，不代表业务应用已经生效；审计与运营页面后续交付。
+Account Center 独立管理前端，包含用户管理、应用及 Secret 管理、应用授权与同步、标准目录数据、菜单授权、审计和管理概览。新建用户不自动授权；授权应用后同步，匹配当前版本的确认才表示生效。
 
 ## 技术基线
 
@@ -8,9 +8,11 @@ Account Center 独立管理前端。当前包含登录态、全局用户管理�
 - pnpm 11.19.0 与 frozen lockfile
 - Vue 3、TypeScript strict、Vite、Vue Router、Pinia、Element Plus
 - Vitest、Playwright、ESLint、Oxlint、Stylelint、Prettier
-- 首期语言 `zh-CN`，用户可见文案归入 `src/locales`
+- 语言 `zh-CN`、`zh-TW`、`en-US`、`vi-VN`，资源归入 `src/locales`，组件与日期/数字同步切换
 
 ## 本地启动
+
+使用 mise 时，先在 `account-web` 运行 `mise install`，安装 `.tool-versions` 中固定的 Node.js 和 pnpm。
 
 复制 `.env.example` 为本地未提交的 `.env.local`，按需调整 Account Server 地址。配置键不包含 Secret：
 
@@ -23,6 +25,8 @@ pnpm dev
 ```
 
 开发地址为 `http://localhost:5173/console/`，`/api/**` 通过 Vite 同源代理转发到 Account Server。
+
+“应用数据”入口选择 CMS 后查看、拉取和确认导入用户/角色/组织；“应用授权”选择用户后授权、查看同步结果和配置菜单，授权与撤权不填写理由。应用只要求编码、名称，其余地址按需填写；可用功能由配置派生，没有协议勾选或功能启停。CMS 预设只填充缺失字段，保留原应用编码和地址。部署及数据库步骤见 [对接方案](../docs/application-integration/CMS接入-部署对接方案.md)。
 
 ## 质量门
 

@@ -1,9 +1,17 @@
 import { reactive, readonly, ref } from 'vue'
 import { enUS } from './en-US'
 import { zhCN } from './zh-CN'
+import { zhTW } from './zh-TW'
+import { viVN } from './vi-VN'
 import type { Messages } from './types'
 
-export type Locale = 'zh-CN' | 'en-US'
+export type Locale = 'zh-CN' | 'zh-TW' | 'en-US' | 'vi-VN'
+const catalogs: Record<Locale, Messages> = {
+  'zh-CN': zhCN,
+  'zh-TW': zhTW,
+  'en-US': enUS,
+  'vi-VN': viVN,
+}
 const storageKey = 'account-console.locale'
 const currentLocale = ref<Locale>('zh-CN')
 export const locale = readonly(currentLocale)
@@ -17,11 +25,16 @@ function replaceMessages(target: Record<string, unknown>, source: Record<string,
   }
 }
 
+function isLocale(value: string): value is Locale {
+  return Object.prototype.hasOwnProperty.call(catalogs, value)
+}
+
 export function setLocale(value: string) {
-  if (value !== 'zh-CN' && value !== 'en-US') return
-  currentLocale.value = value
+  if (!isLocale(value)) return
+  const selected = value
+  currentLocale.value = selected
   // Preserve namespace references held by mounted forms; do not remount or lose input.
-  replaceMessages(currentMessages, value === 'en-US' ? enUS : zhCN)
+  replaceMessages(currentMessages, catalogs[selected])
   document.documentElement.lang = value
   document.documentElement.dir = 'ltr'
   document.title = messages.brand.product
@@ -39,7 +52,7 @@ export function initializeLocale() {
   } catch {
     // Default to Chinese if browser storage cannot be read.
   }
-  setLocale(saved === 'en-US' ? 'en-US' : 'zh-CN')
+  setLocale(saved && isLocale(saved) ? saved : 'zh-CN')
 }
 
 export function formatNumber(value: number) {
@@ -67,7 +80,9 @@ function feedbackEntries(catalog: Record<string, unknown>, prefix = ''): [string
   })
 }
 
-const feedbackPaths = new Map([...feedbackEntries(zhCN), ...feedbackEntries(enUS)])
+const feedbackPaths = new Map(
+  Object.values(catalogs).flatMap((catalog) => feedbackEntries(catalog)),
+)
 
 export function localizeFeedback(value?: string) {
   if (!value) return ''

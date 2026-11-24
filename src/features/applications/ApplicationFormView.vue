@@ -1,15 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  ElButton,
-  ElCheckbox,
-  ElCheckboxGroup,
-  ElDialog,
-  ElInput,
-  ElMessage,
-  ElSkeleton,
-} from 'element-plus'
+import { ElButton, ElDialog, ElInput, ElMessage, ElSkeleton } from 'element-plus'
 
 import {
   createApplication,
@@ -38,7 +30,13 @@ const version = ref(0)
 const oneTimeSecret = ref('')
 const secretDialogVisible = ref(false)
 const fieldErrors = reactive<Record<string, string>>({})
-const form = reactive<CreateApplicationRequest>({
+type ApplicationForm = CreateApplicationRequest & {
+  entryUrl: string
+  ssoCallbackUrl: string
+  permissionIframeUrl: string
+  notifyBaseUrl: string
+}
+const form = reactive<ApplicationForm>({
   appCode: '',
   name: '',
   entryUrl: '',
@@ -46,8 +44,19 @@ const form = reactive<CreateApplicationRequest>({
   permissionIframeUrl: '',
   notifyBaseUrl: '',
   defaultTenantCode: 'default',
-  protocolCapabilities: ['sso', 'admin_ticket', 'user_sync'],
 })
+
+function fillCmsPreset() {
+  Object.assign(form, {
+    appCode: editing.value ? form.appCode : form.appCode || 'cms-ai',
+    name: form.name || 'CMS',
+    entryUrl: form.entryUrl || 'http://localhost:8850/api-test/main/login/account',
+    ssoCallbackUrl:
+      form.ssoCallbackUrl || 'http://localhost:8850/api-test/main/login/account/callback',
+    notifyBaseUrl: form.notifyBaseUrl || 'http://localhost:9101',
+    defaultTenantCode: form.defaultTenantCode || 'default',
+  })
+}
 
 watch(
   form,
@@ -73,7 +82,7 @@ async function loadApplication() {
     form.permissionIframeUrl = application.permissionIframeUrl
     form.notifyBaseUrl = application.notifyBaseUrl
     form.defaultTenantCode = application.defaultTenantCode
-    form.protocolCapabilities = [...application.protocolCapabilities]
+
     version.value = application.version
   } catch (error) {
     if (await handleAuthError(error)) return
@@ -86,14 +95,7 @@ async function loadApplication() {
 
 function validate() {
   for (const key of Object.keys(fieldErrors)) delete fieldErrors[key]
-  for (const field of [
-    'appCode',
-    'name',
-    'entryUrl',
-    'ssoCallbackUrl',
-    'permissionIframeUrl',
-    'notifyBaseUrl',
-  ] as const) {
+  for (const field of ['appCode', 'name'] as const) {
     if (!form[field].trim()) fieldErrors[field] = copy.required
   }
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(form.appCode)) fieldErrors.appCode = copy.invalidAppCode
@@ -105,8 +107,6 @@ function validate() {
   ] as const) {
     if (form[field] && !isExactHttpUrl(form[field])) fieldErrors[field] = copy.invalidUrl
   }
-  if (form.protocolCapabilities.length === 0)
-    fieldErrors.protocolCapabilities = copy.protocolRequired
   return Object.keys(fieldErrors).length === 0
 }
 
@@ -139,7 +139,6 @@ async function submit() {
     permissionIframeUrl: form.permissionIframeUrl.trim(),
     notifyBaseUrl: form.notifyBaseUrl.trim(),
     defaultTenantCode: form.defaultTenantCode?.trim() || null,
-    protocolCapabilities: [...form.protocolCapabilities],
   }
   try {
     if (editing.value) {
@@ -267,6 +266,9 @@ onBeforeUnmount(() => {
     </StatePanel>
 
     <form v-else class="application-form" novalidate @submit.prevent="submit">
+      <div class="wide-field">
+        <ElButton :disabled="submitting" @click="fillCmsPreset">{{ copy.cmsPreset }}</ElButton>
+      </div>
       <label>
         <span>{{ copy.appCode }}</span>
         <ElInput v-model="form.appCode" :disabled="editing" maxlength="64" />
@@ -311,20 +313,6 @@ onBeforeUnmount(() => {
         <span>{{ copy.defaultTenantCode }}</span>
         <ElInput v-model="form.defaultTenantCode" maxlength="64" />
       </label>
-      <fieldset class="wide-field">
-        <legend>{{ copy.protocols }}</legend>
-        <ElCheckboxGroup v-model="form.protocolCapabilities" class="protocol-options">
-          <ElCheckbox value="sso" border>{{ copy.protocolSso }}</ElCheckbox>
-          <ElCheckbox value="admin_ticket" border>{{ copy.protocolAdminTicket }}</ElCheckbox>
-          <ElCheckbox value="user_sync" border>{{ copy.protocolUserSync }}</ElCheckbox>
-          <ElCheckbox value="menu_permission_v1" border>{{
-            copy.protocolMenuPermission
-          }}</ElCheckbox>
-        </ElCheckboxGroup>
-        <small v-if="fieldErrors.protocolCapabilities" role="alert">{{
-          localizeFeedback(fieldErrors.protocolCapabilities)
-        }}</small>
-      </fieldset>
       <p v-if="failed && !conflict" class="form-error" role="alert">{{ copy.saveFailed }}</p>
       <footer>
         <RouterLink
@@ -392,24 +380,16 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-card);
 }
 
-.application-form label,
-.application-form fieldset {
+.application-form label {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
 }
 
-.application-form label > span,
-.application-form legend {
+.application-form label > span {
   color: var(--color-text-muted);
   font-size: 0.78rem;
   font-weight: 700;
-}
-
-.application-form fieldset {
-  margin: 0;
-  padding: 0;
-  border: 0;
 }
 
 .wide-field,
@@ -429,73 +409,9 @@ onBeforeUnmount(() => {
   gap: var(--space-3);
 }
 
-.protocol-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.protocol-options :deep(.el-checkbox.is-bordered) {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  height: auto;
-  min-height: 3.25rem;
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-}
-
-.protocol-options :deep(.el-checkbox.is-bordered:hover) {
-  border-color: var(--color-brand);
-  background: var(--color-surface-muted);
-}
-
-.protocol-options :deep(.el-checkbox.is-bordered.is-checked) {
-  border-color: var(--color-brand);
-  background: var(--color-brand-soft);
-}
-
-.protocol-options :deep(.el-checkbox:has(:focus-visible)) {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
-}
-
-.protocol-options :deep(.el-checkbox__label) {
-  min-width: 0;
-  color: var(--color-text);
-  font-weight: 600;
-  line-height: 1.5;
-  white-space: normal;
-}
-
-.protocol-options :deep(.is-checked .el-checkbox__label) {
-  color: var(--color-brand-strong);
-}
-
-.protocol-options :deep(.el-checkbox__inner) {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--space-1);
-}
-
-.protocol-options :deep(.el-checkbox__inner::after) {
-  top: 3px;
-  left: 6px;
-}
-
 @media (width <= 42rem) {
-  .application-form,
-  .protocol-options {
+  .application-form {
     grid-template-columns: 1fr;
-  }
-
-  .wide-field,
-  .application-form footer,
-  .form-error {
-    grid-column: auto;
   }
 }
 </style>

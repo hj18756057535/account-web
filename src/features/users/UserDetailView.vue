@@ -6,7 +6,6 @@ import { ElAlert, ElButton, ElInput, ElMessageBox, ElSkeleton, ElTag } from 'ele
 import { changeUserStatus, getUser, type UserResponse } from '@/api/account'
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
-import UserApplicationAccess from '@/features/applications/UserApplicationAccess.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { formatDate, localizeFeedback, messages } from '@/locales'
 
@@ -190,8 +189,16 @@ onMounted(loadUser)
           <strong>{{ formatDate(user.createdAt) }}</strong>
         </article>
         <article>
+          <span>{{ messages.common.createdBy }}</span>
+          <strong>{{ user.createdBy || messages.common.unknown }}</strong>
+        </article>
+        <article>
           <span>{{ copy.updatedAt }}</span>
           <strong>{{ formatDate(user.updatedAt) }}</strong>
+        </article>
+        <article>
+          <span>{{ messages.common.updatedBy }}</span>
+          <strong>{{ user.updatedBy || messages.common.unknown }}</strong>
         </article>
         <article>
           <span>{{ copy.version }}</span>
@@ -227,10 +234,12 @@ onMounted(loadUser)
         </ElButton>
       </section>
 
-      <UserApplicationAccess
+      <RouterLink
         v-if="sessionStore.hasCapability('application-access:read')"
-        :user-id="user.id"
-      />
+        :to="{ name: 'application-access', query: { userId: user.id } }"
+      >
+        <ElButton type="primary">{{ messages.access.title }}</ElButton>
+      </RouterLink>
     </template>
   </section>
 </template>

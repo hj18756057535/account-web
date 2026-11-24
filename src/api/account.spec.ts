@@ -13,9 +13,38 @@ import {
   downloadUserImportTemplate,
   retryUserApplicationSynchronization,
   replaceUserApplicationMenuPermissions,
+  checkApplicationConnection,
+  previewApplicationDirectory,
+  commitApplicationDirectory,
 } from './account'
 
 describe('account write client', () => {
+  it('uses the Account origin and write guards for directory checks, preview and commit', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(
+        async () => new Response(JSON.stringify({ connected: true }), { status: 200 }),
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    await checkApplicationConnection('cms/one', 'csrf-directory')
+    await previewApplicationDirectory('cms/one', 'csrf-directory')
+    await commitApplicationDirectory('cms/one', 'preview/one', 'csrf-directory', 'idem-directory')
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/applications/cms%2Fone/connection-check',
+      '/api/applications/cms%2Fone/directory-imports',
+      '/api/applications/cms%2Fone/directory-imports/preview%2Fone/commit',
+    ])
+    for (const [, options] of fetchMock.mock.calls) {
+      expect(options?.method).toBe('POST')
+      expect(options?.credentials).toBe('same-origin')
+      expect(new Headers(options?.headers).get('X-CSRF-Token')).toBe('csrf-directory')
+      expect(new Headers(options?.headers).has('Authorization')).toBe(false)
+    }
+    expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get('Idempotency-Key')).toBe(
+      'idem-directory',
+    )
+  })
+
   it('queries and replaces menu permissions through Account with encoded paths and write guards', async () => {
     const snapshot = {
       accessVersion: 7,
@@ -227,7 +256,6 @@ describe('account write client', () => {
         permissionIframeUrl: 'https://analytics.example.test/permissions',
         notifyBaseUrl: 'https://analytics.example.test/notify',
         defaultTenantCode: 'default',
-        protocolCapabilities: ['sso'],
       },
       'csrf-app',
       'idempotency-app',
@@ -235,7 +263,7 @@ describe('account write client', () => {
     await changeUserApplicationAccess(
       'user-1',
       'analytics',
-      { status: 'enabled', version: 0, reason: '测试开通', confirmPermissionReuse: false },
+      { status: 'enabled', version: 0, confirmPermissionReuse: false },
       'csrf-access',
       'idempotency-access',
     )

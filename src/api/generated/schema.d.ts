@@ -4,6 +4,106 @@
  */
 
 export interface paths {
+    "/api/applications/{appCode}/connection-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 检测已登记应用目录服务
+         * @description 管理员写入需 Session 和 CSRF。只读目录保持应用来源，不赋予 Account 管理员角色。 不复制密码，不覆盖已有用户资料、凭据或禁用状态；来源 ID 始终为十进制字符串。
+         */
+        post: operations["checkApplicationConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/directory-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 从应用拉取用户角色组织并创建十五分钟预览
+         * @description 管理员写入需 Session 和 CSRF。只读目录保持应用来源，不赋予 Account 管理员角色。 不复制密码，不覆盖已有用户资料、凭据或禁用状态；来源 ID 始终为十进制字符串。
+         */
+        post: operations["previewApplicationDirectoryImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/directory-imports/{importId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前操作人的目录预览
+         * @description 管理员写入需 Session 和 CSRF。只读目录保持应用来源，不赋予 Account 管理员角色。 不复制密码，不覆盖已有用户资料、凭据或禁用状态；来源 ID 始终为十进制字符串。
+         */
+        get: operations["getApplicationDirectoryImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/directory-imports/{importId}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 确认导入目录并建立稳定身份关联
+         * @description 管理员写入需 Session 和 CSRF。只读目录保持应用来源，不赋予 Account 管理员角色。 不复制密码，不覆盖已有用户资料、凭据或禁用状态；来源 ID 始终为十进制字符串。
+         */
+        post: operations["commitApplicationDirectoryImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{appCode}/directory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取该应用最近一次已导入的来源目录
+         * @description 管理员写入需 Session 和 CSRF。只读目录保持应用来源，不赋予 Account 管理员角色。 不复制密码，不覆盖已有用户资料、凭据或禁用状态；来源 ID 始终为十进制字符串。
+         */
+        get: operations["getApplicationDirectory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/overview": {
         parameters: {
             query?: never;
@@ -436,7 +536,7 @@ export interface components {
             insightsEnabled: boolean;
             insights: {
                 /** @enum {string} */
-                rule: "missing_callbacks" | "long_disabled_users" | "repeated_failures";
+                rule: "long_disabled_users" | "repeated_failures";
                 /** Format: int64 */
                 count: number;
             }[];
@@ -457,8 +557,6 @@ export interface components {
             disabledApplications: number;
             /** Format: int64 */
             grantedAccess: number;
-            /** Format: int64 */
-            missingCallbacks: number;
             /** Format: int64 */
             longDisabledUsers: number;
         };
@@ -531,6 +629,10 @@ export interface components {
         /** @enum {string} */
         UserStatus: "enabled" | "disabled";
         UserResponse: {
+            /** @description 服务端记录的创建人 ID；system 表示系统操作 */
+            createdBy?: string | null;
+            /** @description 服务端记录的更新人 ID */
+            updatedBy?: string | null;
             id: string;
             account: string;
             email: string;
@@ -576,25 +678,21 @@ export interface components {
         /** @enum {string} */
         ApplicationStatus: "enabled" | "disabled";
         /** @enum {string} */
-        ApplicationProtocolCapability: "sso" | "admin_ticket" | "user_sync" | "menu_permission_v1";
+        ApplicationProtocolCapability: "sso" | "admin_ticket" | "user_sync" | "menu_permission_v1" | "directory";
         /** @enum {string} */
         ApplicationSecretState: "active" | "revoked";
         CreateApplicationRequest: {
             appCode: string;
             name: string;
-            /** Format: uri */
-            entryUrl: string;
-            /**
-             * Format: uri
-             * @description 精确回调 URI，不接受通配符或 fragment
-             */
-            ssoCallbackUrl: string;
+            /** @description 可选的 HTTP(S) 应用入口；空字符串表示未配置 */
+            entryUrl?: string;
+            /** @description 可选的精确 HTTP(S) 回调；留空不提供 SSO，不接受通配符或 fragment */
+            ssoCallbackUrl?: string;
             /** @description 精确授权页 URI，可包含 {externalUserId} 路径占位符 */
-            permissionIframeUrl: string;
-            /** Format: uri */
-            notifyBaseUrl: string;
+            permissionIframeUrl?: string;
+            /** @description 可选的 HTTP(S) Provider 基址；留空不处理目录、用户同步和菜单 */
+            notifyBaseUrl?: string;
             defaultTenantCode?: string | null;
-            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
         };
         UpdateApplicationRequest: components["schemas"]["CreateApplicationFields"] & {
             /** Format: int64 */
@@ -602,25 +700,28 @@ export interface components {
         };
         CreateApplicationFields: {
             name: string;
-            /** Format: uri */
-            entryUrl: string;
-            /** Format: uri */
-            ssoCallbackUrl: string;
-            permissionIframeUrl: string;
-            /** Format: uri */
-            notifyBaseUrl: string;
+            /** @description 可选的 HTTP(S) 应用入口；空字符串表示未配置 */
+            entryUrl?: string;
+            /** @description 可选的精确 HTTP(S) 回调；留空不提供 SSO */
+            ssoCallbackUrl?: string;
+            permissionIframeUrl?: string;
+            /** @description 可选的 HTTP(S) Provider 基址；留空不处理目录、用户同步和菜单 */
+            notifyBaseUrl?: string;
             defaultTenantCode?: string | null;
-            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
         };
         ApplicationResponse: {
+            /** @description 服务端记录的创建人 ID；system 表示系统操作 */
+            createdBy?: string | null;
+            /** @description 服务端记录的更新人 ID */
+            updatedBy?: string | null;
             appCode: string;
             name: string;
-            /** Format: uri */
+            /** @description HTTP(S) 应用入口；空字符串表示未配置 */
             entryUrl: string;
-            /** Format: uri */
+            /** @description 精确 HTTP(S) 回调；空字符串表示未配置 SSO */
             ssoCallbackUrl: string;
             permissionIframeUrl: string;
-            /** Format: uri */
+            /** @description HTTP(S) Provider 基址；空字符串表示未配置 */
             notifyBaseUrl: string;
             defaultTenantCode: string;
             status: components["schemas"]["ApplicationStatus"];
@@ -628,7 +729,8 @@ export interface components {
             version: number;
             secretVersion: number;
             secretState: components["schemas"]["ApplicationSecretState"];
-            protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
+            /** @description 根据已填写配置推导的可用功能，不作为请求字段或存储开关 */
+            readonly protocolCapabilities: components["schemas"]["ApplicationProtocolCapability"][];
             /** Format: date-time */
             createdAt?: string | null;
             /** Format: date-time */
@@ -648,7 +750,7 @@ export interface components {
             status: components["schemas"]["ApplicationStatus"];
             /** Format: int64 */
             version: number;
-            reason: string;
+            reason?: string;
         };
         ChangeApplicationAccessRequest: {
             status: components["schemas"]["ApplicationStatus"];
@@ -659,7 +761,6 @@ export interface components {
              * @default false
              */
             confirmPermissionReuse: boolean;
-            reason: string;
         };
         ApplicationAccessResponse: {
             userId: string;
@@ -671,7 +772,7 @@ export interface components {
             /** Format: int64 */
             version: number;
             /** @enum {string} */
-            integrationStatus: "pending_application_adaptation" | "pending" | "processing" | "retry_wait" | "succeeded" | "failed" | "superseded" | "expired";
+            integrationStatus: "not_authorized" | "not_required" | "pending_application_adaptation" | "pending" | "processing" | "retry_wait" | "succeeded" | "failed" | "superseded" | "expired";
             /** @enum {string|null} */
             appliedStatus?: "enabled" | "disabled" | null;
             appliedVersion?: number | null;
@@ -743,6 +844,64 @@ export interface components {
             appCode: string;
             userId: string;
         };
+        ConnectionResult: {
+            connected: boolean;
+            /** Format: date-time */
+            checkedAt: string;
+        };
+        DirectoryUser: {
+            localUserId: string;
+            account: string;
+            name?: string | null;
+            email?: string | null;
+            phone?: string | null;
+            /** @enum {string} */
+            status: "enabled" | "disabled";
+            roleIds: string[];
+            organizationIds: string[];
+        };
+        DirectoryRole: {
+            localRoleId: string;
+            code?: string | null;
+            name?: string | null;
+            /** @enum {string} */
+            status: "enabled" | "disabled";
+        };
+        DirectoryOrganization: {
+            localOrganizationId: string;
+            parentId?: string | null;
+            code?: string | null;
+            name?: string | null;
+            /** @enum {string} */
+            status: "enabled" | "disabled";
+        };
+        DirectorySnapshot: {
+            appCode: string;
+            /** Format: date-time */
+            capturedAt?: string | null;
+            users: components["schemas"]["DirectoryUser"][];
+            roles: components["schemas"]["DirectoryRole"][];
+            organizations: components["schemas"]["DirectoryOrganization"][];
+        };
+        DirectoryImportPreview: {
+            importId: string;
+            /** @enum {string} */
+            status: "preview" | "committed";
+            /** Format: date-time */
+            expiresAt: string;
+            newUsers: number;
+            existingUsers: number;
+            snapshot: components["schemas"]["DirectorySnapshot"];
+        };
+        DirectoryImportResult: {
+            importId: string;
+            appCode: string;
+            createdUsers: number;
+            reusedUsers: number;
+            linkedUsers: number;
+            roles: number;
+            organizations: number;
+        };
     };
     responses: {
         /** @description 未登录或 Session 已失效 */
@@ -809,6 +968,219 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    checkApplicationConnection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                appCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功，响应禁止缓存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionResult"];
+                };
+            };
+            /** @description 身份冲突、应用版本变化或幂等冲突，需重新预览 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 配置、凭据、目录接口、响应边界或依赖不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    previewApplicationDirectoryImport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+            };
+            path: {
+                appCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功，响应禁止缓存 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryImportPreview"];
+                };
+            };
+            /** @description 身份冲突、应用版本变化或幂等冲突，需重新预览 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 配置、凭据、目录接口、响应边界或依赖不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getApplicationDirectoryImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appCode: string;
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功，响应禁止缓存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryImportPreview"];
+                };
+            };
+            /** @description 身份冲突、应用版本变化或幂等冲突，需重新预览 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 配置、凭据、目录接口、响应边界或依赖不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commitApplicationDirectoryImport: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description 由 GET /api/session 初始化并只保存在前端内存中的同步器 Token */
+                "X-CSRF-Token": components["parameters"]["CsrfToken"];
+                /** @description 按操作者、方法和规范化资源路径隔离，完成结果至少保留 24 小时 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                appCode: string;
+                importId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功，响应禁止缓存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryImportResult"];
+                };
+            };
+            /** @description 身份冲突、应用版本变化或幂等冲突，需重新预览 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 配置、凭据、目录接口、响应边界或依赖不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getApplicationDirectory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功，响应禁止缓存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorySnapshot"];
+                };
+            };
+            /** @description 身份冲突、应用版本变化或幂等冲突，需重新预览 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description 配置、凭据、目录接口、响应边界或依赖不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     getOverview: {
         parameters: {
             query?: never;

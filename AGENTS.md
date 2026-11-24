@@ -2,6 +2,8 @@
 
 ## 项目范围
 
+当前为未投入使用的全新开发阶段，执行 [工作区阶段规则](../AGENTS.md#当前开发阶段)。同步更新当前 API 和页面，不保留旧字段适配；应用授权不填写理由，功能按配置判断。
+
 本仓库是 Account Center 独立管理前端。业务事实和最终授权由 Account 后端负责；前端只负责管理体验，不作为安全边界，也不直接调用业务应用。
 
 ## 技术与目录
@@ -10,7 +12,7 @@
 - Vue Router 管理路由；Pinia 只保存跨页面必要状态。
 - Element Plus 提供基础组件，Account Design Token 位于 `src/design`。
 - 功能按 `src/features/<domain>` 纵向组织；API 请求和生成类型位于 `src/api`。
-- 用户可见文案进入 `src/locales`，支持 `zh-CN` / `en-US`，默认中文；新增文案必须同步双语，页面读取响应式 `messages`，不得直接绑定单一语言资源。
+- 用户可见文案进入 `src/locales`，支持 `zh-CN` / `zh-TW` / `en-US` / `vi-VN`，默认简体中文；新增文案同步四语，页面读取响应式 `messages`，不得直接绑定单一语言资源。
 
 ## 硬规则
 

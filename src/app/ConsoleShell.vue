@@ -54,11 +54,22 @@ async function signOut() {
           <span class="nav-icon" aria-hidden="true">A</span>
           <span>{{ copy.navigation.applications }}</span>
         </RouterLink>
-        <button class="nav-item nav-item--disabled" type="button" disabled>
+        <RouterLink
+          v-if="sessionStore.hasCapability('application-access:read')"
+          class="nav-item"
+          :to="{ name: 'application-access' }"
+        >
           <span class="nav-icon" aria-hidden="true">C</span>
           <span>{{ copy.navigation.access }}</span>
-          <small>{{ copy.navigation.accessInUserDetail }}</small>
-        </button>
+        </RouterLink>
+        <RouterLink
+          v-if="sessionStore.hasCapability('applications:read')"
+          class="nav-item"
+          :to="{ name: 'application-data' }"
+        >
+          <span class="nav-icon" aria-hidden="true">D</span>
+          <span>{{ copy.navigation.data }}</span>
+        </RouterLink>
         <RouterLink
           v-if="sessionStore.hasCapability('audit:read')"
           class="nav-item"
@@ -68,14 +79,6 @@ async function signOut() {
           <span>{{ copy.navigation.audit }}</span>
         </RouterLink>
       </nav>
-
-      <div class="sidebar-insight">
-        <span class="insight-dot" aria-hidden="true"></span>
-        <div>
-          <strong>{{ copy.navigation.sliceTitle }}</strong>
-          <p>{{ copy.navigation.sliceDescription }}</p>
-        </div>
-      </div>
     </aside>
 
     <div class="console-main">
@@ -124,8 +127,7 @@ async function signOut() {
 .brand-block,
 .account-menu,
 .console-header,
-.nav-item,
-.sidebar-insight {
+.nav-item {
   display: flex;
   align-items: center;
 }
@@ -190,12 +192,6 @@ async function signOut() {
   text-align: left;
 }
 
-.nav-item small {
-  margin-left: auto;
-  color: #94a3b8;
-  font-size: 0.68rem;
-}
-
 .nav-item.router-link-active {
   color: var(--color-brand-strong);
   background: var(--color-brand-soft);
@@ -219,28 +215,6 @@ async function signOut() {
   background: var(--color-brand);
 }
 
-.nav-item--disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-.sidebar-insight {
-  gap: var(--space-3);
-  margin-top: auto;
-  padding: var(--space-4);
-  border: 1px solid #ccebf0;
-  border-radius: var(--radius-card);
-  background: linear-gradient(145deg, var(--color-accent-soft), #f8fdff);
-  align-items: flex-start;
-}
-
-.sidebar-insight p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-}
-
-.insight-dot,
 .environment-dot {
   display: inline-block;
   width: 0.55rem;
@@ -323,11 +297,6 @@ async function signOut() {
   .nav-item {
     width: auto;
     min-width: max-content;
-  }
-
-  .nav-item small,
-  .sidebar-insight {
-    display: none;
   }
 
   .console-header,

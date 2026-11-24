@@ -22,7 +22,7 @@ import {
 import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
-import { localizeFeedback, messages } from '@/locales'
+import { formatDate, localizeFeedback, messages } from '@/locales'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,6 +192,7 @@ function protocolLabel(protocol: string) {
       admin_ticket: copy.protocolAdminTicket,
       user_sync: copy.protocolUserSync,
       menu_permission_v1: copy.protocolMenuPermission,
+      directory: copy.protocolDirectory,
     }[protocol] ?? protocol
   )
 }
@@ -245,6 +246,22 @@ onBeforeUnmount(clearSecret)
 
       <div class="detail-grid">
         <article>
+          <span>{{ messages.common.createdBy }}</span>
+          <strong>{{ application.createdBy || messages.common.unknown }}</strong>
+        </article>
+        <article>
+          <span>{{ messages.common.createdAt }}</span>
+          <strong>{{ formatDate(application.createdAt) }}</strong>
+        </article>
+        <article>
+          <span>{{ messages.common.updatedBy }}</span>
+          <strong>{{ application.updatedBy || messages.common.unknown }}</strong>
+        </article>
+        <article>
+          <span>{{ messages.common.updatedAt }}</span>
+          <strong>{{ formatDate(application.updatedAt) }}</strong>
+        </article>
+        <article>
           <span>{{ copy.entryUrl }}</span
           ><strong>{{ application.entryUrl }}</strong>
         </article>
@@ -290,6 +307,7 @@ onBeforeUnmount(clearSecret)
       </section>
 
       <section v-if="sessionStore.hasCapability('applications:write')" class="action-card">
+        <p>{{ copy.secretUsage }}</p>
         <label
           ><span>{{ copy.statusReason }}</span
           ><ElInput
@@ -320,6 +338,17 @@ onBeforeUnmount(clearSecret)
           >
         </div>
       </section>
+      <div class="actions">
+        <RouterLink :to="{ name: 'application-data', query: { appCode: application.appCode } }">
+          <ElButton type="primary">{{ messages.navigation.data }}</ElButton>
+        </RouterLink>
+        <RouterLink
+          v-if="sessionStore.hasCapability('application-access:read')"
+          :to="{ name: 'application-access', query: { appCode: application.appCode } }"
+        >
+          <ElButton>{{ messages.navigation.access }}</ElButton>
+        </RouterLink>
+      </div>
     </template>
 
     <ElDialog

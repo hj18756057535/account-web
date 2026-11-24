@@ -3,6 +3,8 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { enUS } from './en-US'
 import { zhCN } from './zh-CN'
+import { zhTW } from './zh-TW'
+import { viVN } from './vi-VN'
 import {
   formatDate,
   formatNumber,
@@ -30,14 +32,16 @@ function leaves(value: Record<string, unknown>, prefix = ''): Record<string, str
   )
 }
 
-describe('bilingual console', () => {
+describe('localized console', () => {
   it('keeps translation keys and interpolation parameters in sync', () => {
     const source = leaves(zhCN)
-    const target = leaves(enUS)
-    expect(Object.keys(target).sort()).toEqual(Object.keys(source).sort())
-    for (const [key, value] of Object.entries(source)) {
-      expect(target[key]?.trim()).toBeTruthy()
-      expect(target[key]?.match(/\{\w+\}/g) ?? []).toEqual(value.match(/\{\w+\}/g) ?? [])
+    for (const catalog of [enUS, zhTW, viVN]) {
+      const target = leaves(catalog)
+      expect(Object.keys(target).sort()).toEqual(Object.keys(source).sort())
+      for (const [key, value] of Object.entries(source)) {
+        expect(target[key]?.trim()).toBeTruthy()
+        expect(target[key]?.match(/\{\w+\}/g) ?? []).toEqual(value.match(/\{\w+\}/g) ?? [])
+      }
     }
   })
 
@@ -56,6 +60,15 @@ describe('bilingual console', () => {
     expect(document.title).toBe(enUS.brand.product)
     expect(localizeFeedback(zhCN.users.required)).toBe(enUS.users.required)
     expect(localizeFeedback('unrecognized backend message')).toBe(enUS.common.invalidField)
+    setLocale('zh-TW')
+    await nextTick()
+    expect(wrapper.get('h1').text()).toBe(zhTW.users.title)
+    setLocale('vi-VN')
+    await nextTick()
+    expect(wrapper.get('h1').text()).toBe(viVN.users.title)
+    expect(wrapper.get('input').element.value).toBe('unsaved')
+    expect(localizeFeedback(zhTW.users.required)).toBe(viVN.users.required)
+    expect(document.documentElement.lang).toBe('vi-VN')
     wrapper.unmount()
   })
 

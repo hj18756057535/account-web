@@ -61,6 +61,7 @@ function protocolLabel(protocol: string) {
   if (protocol === 'admin_ticket') return copy.protocolAdminTicket
   if (protocol === 'user_sync') return copy.protocolUserSync
   if (protocol === 'menu_permission_v1') return copy.protocolMenuPermission
+  if (protocol === 'directory') return copy.protocolDirectory
   return protocol
 }
 

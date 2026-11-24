@@ -2,6 +2,7 @@ import { createPinia } from 'pinia'
 import { enableAutoUnmount, flushPromises, shallowMount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ElInput } from 'element-plus'
 
 import * as accountApi from '@/api/account'
 import StatePanel from '@/components/StatePanel.vue'
@@ -45,22 +46,35 @@ async function renderEditor(path = '/applications/demo-app/edit') {
 }
 
 describe('application editor route rendering', () => {
-  it('keeps protocol cards independently selectable on the create page', async () => {
+  it('registers an application without feature switches or optional addresses', async () => {
+    vi.spyOn(accountApi, 'createApplication').mockResolvedValue({
+      application: {
+        appCode: 'plain-app',
+        name: 'Plain',
+        entryUrl: '',
+        ssoCallbackUrl: '',
+        permissionIframeUrl: '',
+        notifyBaseUrl: '',
+        defaultTenantCode: 'default',
+        protocolCapabilities: [],
+        status: 'enabled',
+        secretState: 'active',
+        secretVersion: 1,
+        version: 1,
+      },
+      secret: 'synthetic-secret-only-for-unit-testing',
+    })
     const wrapper = await renderEditor('/applications/new')
-    const sso = wrapper.get<HTMLInputElement>('.protocol-options input[value="sso"]')
-    const sync = wrapper.get<HTMLInputElement>('.protocol-options input[value="user_sync"]')
-    const menu = wrapper.get<HTMLInputElement>(
-      '.protocol-options input[value="menu_permission_v1"]',
+    const inputs = wrapper.findAllComponents(ElInput)
+    inputs[0]!.vm.$emit('update:modelValue', 'plain-app')
+    inputs[1]!.vm.$emit('update:modelValue', 'Plain')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+    expect(accountApi.createApplication).toHaveBeenCalledOnce()
+    expect(vi.mocked(accountApi.createApplication).mock.calls[0]![0]).not.toHaveProperty(
+      'protocolCapabilities',
     )
-
-    expect(wrapper.findAll('.protocol-options .el-checkbox.is-bordered')).toHaveLength(4)
-    expect(sso.element.checked).toBe(true)
-    await sso.setValue(false)
-    expect(sso.element.checked).toBe(false)
-    expect(sync.element.checked).toBe(true)
-    expect(menu.element.checked).toBe(false)
-    await sso.setValue(true)
-    expect(sso.element.checked).toBe(true)
+    expect(wrapper.find('fieldset').exists()).toBe(false)
   })
 
   it('renders the back link before application data has loaded', async () => {
@@ -106,5 +120,14 @@ describe('application editor route rendering', () => {
 
     expect(wrapper.find('form').exists()).toBe(true)
     expect(wrapper.get('.back-link').attributes('href')).toBe('/applications/demo-app')
+    const inputsBefore = wrapper
+      .findAllComponents(ElInput)
+      .map((input) => input.props('modelValue'))
+    expect(inputsBefore).toContain('Demo')
+    await wrapper.get('el-button-stub').trigger('click')
+    expect(wrapper.findAllComponents(ElInput).map((input) => input.props('modelValue'))).toEqual(
+      inputsBefore,
+    )
+    expect(wrapper.find('fieldset').exists()).toBe(false)
   })
 })
