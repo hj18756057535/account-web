@@ -10,6 +10,7 @@ export type CreateUserRequest = components['schemas']['CreateUserRequest']
 export type UpdateUserRequest = components['schemas']['UpdateUserRequest']
 export type ChangeUserStatusRequest = components['schemas']['ChangeUserStatusRequest']
 export type ApplicationResponse = components['schemas']['ApplicationResponse']
+export type UserApplicationEntry = components['schemas']['UserApplicationEntry']
 export type ApplicationSecretResponse = components['schemas']['ApplicationSecretResponse']
 export type CreateApplicationRequest = components['schemas']['CreateApplicationRequest']
 export type UpdateApplicationRequest = components['schemas']['UpdateApplicationRequest']
@@ -22,6 +23,10 @@ export type MenuPermissionNode = components['schemas']['MenuPermissionNode']
 export type ReplaceMenuPermissionRequest = components['schemas']['ReplaceMenuPermissionRequest']
 
 const apiBase = (import.meta.env.VITE_ACCOUNT_API_BASE || '/api').replace(/\/$/, '')
+
+export function getMyApplications() {
+  return requestJson<UserApplicationEntry[]>(`${apiBase}/session/applications`)
+}
 
 export type DirectorySnapshot = components['schemas']['DirectorySnapshot']
 export type DirectoryUser = components['schemas']['DirectoryUser']

@@ -13,7 +13,6 @@ import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { formatDate, formatNumber, localizeFeedback, messages } from '@/locales'
-import MenuPermissionDialog from './MenuPermissionDialog.vue'
 import { synchronizationError } from './synchronization'
 
 const props = defineProps<{ userId: string; appCode?: string }>()
@@ -91,7 +90,7 @@ async function handleAuthError(error: unknown) {
   return false
 }
 
-function canManageMenus(row: ApplicationAccessResponse) {
+function canManagePermissions(row: ApplicationAccessResponse) {
   return (
     row.applicationStatus === 'enabled' &&
     row.desiredStatus === 'enabled' &&
@@ -200,6 +199,18 @@ watch(
   { immediate: true },
 )
 watch([rows, busy], scheduleRefresh, { deep: true })
+watch(
+  () => visibleRows.value.find((row) => row.appCode === pendingMenuAppCode.value),
+  (row) => {
+    if (!row || !canManagePermissions(row)) return
+    if (!sessionStore.hasCapability('application-access:write')) return
+    pendingMenuAppCode.value = ''
+    void router.push({
+      name: 'user-application-permissions',
+      params: { userId: props.userId, appCode: row.appCode },
+    })
+  },
+)
 onBeforeUnmount(() => {
   generation++
   clearTimeout(refreshTimer)
@@ -210,7 +221,7 @@ onBeforeUnmount(() => {
   <section class="access-card" aria-labelledby="access-title">
     <header>
       <div>
-        <h2 id="access-title">{{ copy.title }}</h2>
+        <h2 id="access-title">{{ copy.sectionTitle }}</h2>
       </div>
       <ElButton :disabled="busy || loading" @click="loadAccess()">{{ copy.refresh }}</ElButton>
     </header>
@@ -284,15 +295,17 @@ onBeforeUnmount(() => {
           <span>{{ copy.lastError }}</span>
           <p>{{ synchronizationError(row.lastErrorCode) }}</p>
         </div>
-        <template v-if="sessionStore.hasCapability('application-access:write')">
-          <MenuPermissionDialog
-            v-if="canManageMenus(row)"
-            :user-id="userId"
-            :access="row"
-            :auto-open="pendingMenuAppCode === row.appCode"
-            @opened="pendingMenuAppCode = ''"
-            @auth-error="handleAuthError"
-          />
+        <div
+          v-if="sessionStore.hasCapability('application-access:write')"
+          class="row-actions authorization-actions"
+        >
+          <RouterLink
+            v-if="canManagePermissions(row)"
+            class="action-link action-link--primary"
+            :to="{ name: 'user-application-permissions', params: { userId, appCode: row.appCode } }"
+          >
+            {{ messages.menuPermissions.open }}
+          </RouterLink>
           <ElButton v-else-if="row.protocolCapabilities.includes('menu_permission_v1')" disabled>
             {{ row.desiredStatus === 'enabled' ? copy.waitForSync : messages.menuPermissions.open }}
           </ElButton>
@@ -301,10 +314,15 @@ onBeforeUnmount(() => {
               !row.protocolCapabilities.includes('user_sync') &&
               sessionStore.hasCapability('applications:write')
             "
+            class="action-link"
             :to="{ name: 'application-edit', params: { appCode: row.appCode } }"
             >{{ copy.configureIntegration }}</RouterLink
           >
-          <RouterLink :to="{ name: 'application-data', query: { appCode: row.appCode } }">
+          <RouterLink
+            v-if="sessionStore.hasCapability('applications:read')"
+            class="action-link"
+            :to="{ name: 'integration-debug', query: { appCode: row.appCode } }"
+          >
             {{ messages.navigation.data }}
           </RouterLink>
           <ElButton
@@ -331,7 +349,7 @@ onBeforeUnmount(() => {
           <p v-if="successes[row.appCode]" class="success" role="status">
             {{ localizeFeedback(successes[row.appCode]) }}
           </p>
-        </template>
+        </div>
       </article>
     </div>
   </section>
@@ -379,6 +397,12 @@ onBeforeUnmount(() => {
   gap: var(--space-2);
 }
 
+.access-list article > .authorization-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+}
+
 .identity span {
   color: var(--color-text-muted);
   font-size: 0.78rem;
@@ -400,6 +424,11 @@ onBeforeUnmount(() => {
 
 .success {
   color: var(--color-success);
+}
+
+.authorization-actions > .error,
+.authorization-actions > .success {
+  flex-basis: 100%;
 }
 
 @media (width <= 56rem) {

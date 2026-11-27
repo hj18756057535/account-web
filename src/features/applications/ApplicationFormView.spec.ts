@@ -40,7 +40,7 @@ async function renderEditor(path = '/applications/demo-app/edit') {
   return shallowMount(ApplicationFormView, {
     global: {
       plugins: [createPinia(), router],
-      stubs: { RouterLink: false, ElCheckbox: false, ElCheckboxGroup: false },
+      stubs: { RouterLink: false },
     },
   })
 }
@@ -124,10 +124,6 @@ describe('application editor route rendering', () => {
       .findAllComponents(ElInput)
       .map((input) => input.props('modelValue'))
     expect(inputsBefore).toContain('Demo')
-    await wrapper.get('el-button-stub').trigger('click')
-    expect(wrapper.findAllComponents(ElInput).map((input) => input.props('modelValue'))).toEqual(
-      inputsBefore,
-    )
     expect(wrapper.find('fieldset').exists()).toBe(false)
   })
 })

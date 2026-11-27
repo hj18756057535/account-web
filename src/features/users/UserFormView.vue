@@ -138,7 +138,7 @@ onMounted(loadUser)
 <template>
   <section class="user-form-page" aria-labelledby="user-form-title">
     <RouterLink
-      class="back-link"
+      class="back-link action-link"
       :to="{
         name: editing ? 'user-detail' : 'users',
         params: editing ? { userId: route.params.userId } : {},
@@ -224,12 +224,13 @@ onMounted(loadUser)
       <p v-if="failed && !conflict" class="form-error" role="alert">{{ copy.submitFailed }}</p>
       <footer>
         <RouterLink
+          class="action-link"
           :to="{
             name: editing ? 'user-detail' : 'users',
             params: editing ? { userId: route.params.userId } : {},
           }"
         >
-          <ElButton>{{ messages.common.cancel }}</ElButton>
+          {{ messages.common.cancel }}
         </RouterLink>
         <ElButton type="primary" native-type="submit" :loading="submitting">
           {{ submitting ? messages.common.saving : messages.common.save }}

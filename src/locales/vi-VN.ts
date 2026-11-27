@@ -1,6 +1,12 @@
 import type { Messages } from './types'
 
 export const viVN: Messages = {
+  applicationSwitcher: {
+    label: 'Chuyển ứng dụng của tôi',
+    loading: 'Đang tải ứng dụng…',
+    empty: 'Chưa có ứng dụng có thể truy cập',
+    retry: 'Không tải được ứng dụng. Nhấn để thử lại.',
+  },
   overview: {
     title: 'Tổng quan quản trị',
     description: 'Dữ liệu tài khoản, lỗi gần đây và cấu hình cần chú ý.',
@@ -75,6 +81,7 @@ export const viVN: Messages = {
     environment: 'Bảng quản trị',
   },
   common: {
+    authorize: 'Cấp quyền',
     retry: 'Tải lại',
     back: 'Quay lại',
     view: 'Xem chi tiết',
@@ -107,8 +114,8 @@ export const viVN: Messages = {
     ariaLabel: 'Điều hướng chính',
     users: 'Người dùng',
     applications: 'Ứng dụng',
-    access: 'Cấp quyền ứng dụng',
-    data: 'Dữ liệu ứng dụng',
+    access: 'Cấp quyền người dùng',
+    data: 'Chẩn đoán tích hợp',
     audit: 'Nhật ký kiểm toán',
     comingSoon: 'Sắp có',
     accessInUserDetail: 'Trong chi tiết người dùng',
@@ -195,6 +202,10 @@ export const viVN: Messages = {
     version: 'Phiên bản',
   },
   applications: {
+    enter: 'Mở ứng dụng',
+    openInNewTab: 'Mở trong cửa sổ mới',
+    entryDisabled: 'Ứng dụng đã bị vô hiệu hóa hoặc thông tin xác thực không khả dụng',
+    entryUnavailable: 'Cấu hình địa chỉ truy cập ứng dụng hợp lệ',
     eyebrow: 'Danh mục ứng dụng',
     title: 'Ứng dụng',
     description:
@@ -219,7 +230,6 @@ export const viVN: Messages = {
     protocolAdminTicket: 'Vé quản trị',
     protocolUserSync: 'Đồng bộ trạng thái người dùng',
     protocolDirectory: 'Danh bạ người dùng, vai trò và tổ chức',
-    cmsPreset: 'Bổ sung cấu hình CMS',
     secretUsage:
       'Secret dùng cho OIDC và API tích hợp. Cập nhật cấu hình CMS rồi kiểm tra kết nối.',
     protocolMenuPermission: 'Quản lý quyền menu',
@@ -294,13 +304,15 @@ export const viVN: Messages = {
     passwordHint: 'Không nhập mật khẩu và không tự động cấp quyền quản trị Account.',
   },
   access: {
+    sectionTitle: 'Quyền truy cập ứng dụng và đồng bộ',
     selectUser: 'Chọn người dùng',
     searchUser: 'Tìm theo tài khoản hoặc họ tên',
     notAuthorized: 'Chưa cấp quyền',
-    waitForSync: 'Cấu hình menu sau khi đồng bộ',
+    waitForSync: 'Cấu hình quyền sau khi đồng bộ',
     configureIntegration: 'Cấu hình URL dịch vụ',
-    title: 'Quyền truy cập và đồng bộ',
-    description: 'Hiển thị riêng trạng thái yêu cầu và trạng thái đã xác nhận của ứng dụng.',
+    title: 'Cấp quyền người dùng',
+    description:
+      'Chọn người dùng và cấp quyền truy cập ứng dụng, sau đó gán vai trò và menu khi đồng bộ đã được xác nhận.',
     desiredStatus: 'Trạng thái yêu cầu',
     applicationStatus: 'Trạng thái ứng dụng',
     integrationStatus: 'Trạng thái đồng bộ',
@@ -348,22 +360,29 @@ export const viVN: Messages = {
     empty: 'Chưa có ứng dụng đăng ký',
   },
   menuPermissions: {
-    open: 'Cấu hình quyền menu',
-    title: 'Quyền menu ứng dụng',
+    back: 'Quay lại cấp quyền người dùng',
+    user: 'Người dùng',
+    application: 'Ứng dụng',
+    menus: 'Menu và thao tác',
+    save: 'Lưu quyền',
+    open: 'Cấu hình quyền',
+    title: 'Gán vai trò và menu cho người dùng',
     description:
-      'Lưu toàn bộ quyền do Account quản lý. Quyền từ vai trò gốc của ứng dụng chỉ được xem.',
+      'Ứng dụng quản lý menu và vai trò. Tại đây chỉ thay đổi liên kết quyền của người dùng; menu kế thừa từ vai trò chỉ được xem.',
+    roles: 'Gán vai trò hiện có của ứng dụng',
     legend: 'Nguồn quyền',
     managed: 'Account quản lý',
     inherited: 'Kế thừa, chỉ đọc',
-    loadFailed: 'Không tải được quyền menu',
+    loadFailed: 'Không tải được quyền ứng dụng',
     unavailable: 'Dịch vụ phân quyền không khả dụng. Kiểm tra tích hợp rồi thử lại.',
-    prerequisite: 'Cấp quyền ứng dụng và chờ xác nhận đồng bộ trước khi cấu hình menu.',
-    unmanageable: 'Account không thể quản lý menu của người dùng này.',
+    prerequisite: 'Cấp quyền ứng dụng và chờ xác nhận đồng bộ trước khi cấu hình quyền.',
+    unmanageable: 'Account không thể quản lý quyền của người dùng này.',
     unsupported: 'Ứng dụng chưa hỗ trợ giao thức phân quyền menu hiện tại.',
     invalid: 'Danh mục hoặc tập quyền không đúng giao thức.',
     empty: 'Không có menu để cấu hình',
-    emptyDescription: 'Ứng dụng trả về danh mục quyền rỗng.',
-    saved: 'Đã lưu quyền menu và ứng dụng đã xác nhận',
+    emptyDescription:
+      'Ứng dụng không có menu hoặc thao tác để gán. Vai trò được gán theo danh sách ứng dụng cung cấp.',
+    saved: 'Đã lưu quyền và ứng dụng đã xác nhận',
     saveFailed: 'Lưu thất bại. Chưa xác nhận thành công.',
     conflict: 'Danh mục hoặc quyền đã thay đổi. Hãy tải lại.',
     reload: 'Tải lại quyền',
@@ -416,7 +435,7 @@ export const viVN: Messages = {
       APPLICATION_ACCESS_CHANGED: 'Thay đổi quyền ứng dụng',
       APPLICATION_SYNC_RETRIED: 'Đồng bộ ứng dụng lại',
       APPLICATION_SYNC_CONFIRMED: 'Xác nhận đồng bộ ứng dụng',
-      APPLICATION_MENU_PERMISSION_REPLACED: 'Thay đổi quyền menu ứng dụng',
+      APPLICATION_MENU_PERMISSION_REPLACED: 'Thay đổi vai trò và quyền menu ứng dụng',
     },
   },
   errors: {

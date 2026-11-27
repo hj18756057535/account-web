@@ -165,14 +165,24 @@ onUnmounted(() => requestId++)
               <span>{{ row.protocolCapabilities.map(protocolLabel).join(' · ') }}</span>
             </template>
           </ElTableColumn>
-          <ElTableColumn :label="copy.actions" min-width="160">
+          <ElTableColumn :label="copy.actions" min-width="260">
             <template #default="{ row }">
-              <RouterLink :to="{ name: 'application-data', query: { appCode: row.appCode } }">{{
-                messages.navigation.data
-              }}</RouterLink>
-              <RouterLink :to="{ name: 'application-access', query: { appCode: row.appCode } }">{{
-                messages.navigation.access
-              }}</RouterLink>
+              <div class="row-actions">
+                <RouterLink
+                  v-if="session.hasCapability('applications:read')"
+                  class="action-link"
+                  :to="{ name: 'integration-debug', query: { appCode: row.appCode } }"
+                >
+                  {{ messages.navigation.data }}
+                </RouterLink>
+                <RouterLink
+                  v-if="session.hasCapability('application-access:read')"
+                  class="action-link"
+                  :to="{ name: 'user-authorization', query: { appCode: row.appCode } }"
+                >
+                  {{ messages.navigation.access }}
+                </RouterLink>
+              </div>
             </template>
           </ElTableColumn>
         </ElTable>
@@ -186,6 +196,8 @@ onUnmounted(() => requestId++)
             <p>{{ copy.rules[insight.rule] }}</p>
             <p>{{ copy.count }}: {{ formatNumber(insight.count) }}</p>
             <RouterLink
+              v-if="insight.rule !== 'long_disabled_users' || session.hasCapability('users:read')"
+              class="action-link"
               :to="{
                 name: insight.rule === 'long_disabled_users' ? 'users' : 'audit-events',
               }"
@@ -208,13 +220,16 @@ onUnmounted(() => requestId++)
             }}</template></ElTableColumn
           >
           <ElTableColumn prop="targetId" :label="copy.eventTarget" min-width="180" />
-          <ElTableColumn :label="copy.actions" min-width="120"
-            ><template #default="{ row }"
-              ><RouterLink :to="{ name: 'audit-events', query: { eventId: row.id } }">{{
-                copy.evidence
-              }}</RouterLink></template
-            ></ElTableColumn
-          >
+          <ElTableColumn :label="copy.actions" min-width="180">
+            <template #default="{ row }">
+              <RouterLink
+                class="action-link"
+                :to="{ name: 'audit-events', query: { eventId: row.id } }"
+              >
+                {{ copy.evidence }}
+              </RouterLink>
+            </template>
+          </ElTableColumn>
         </ElTable>
       </section>
     </template>
@@ -304,9 +319,5 @@ li + li {
 .chart-legend dd {
   margin: 0;
   font-size: 1rem;
-}
-
-.panel a + a {
-  margin-left: var(--space-4);
 }
 </style>

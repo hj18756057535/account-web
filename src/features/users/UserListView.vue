@@ -89,8 +89,12 @@ onMounted(() => loadUsers(1))
           @imported="loadUsers(1)"
         />
         <span class="total-pill">{{ totalLabel(result.total) }}</span>
-        <RouterLink v-if="sessionStore.hasCapability('users:write')" :to="{ name: 'user-create' }">
-          <ElButton type="primary">{{ messages.common.create }}</ElButton>
+        <RouterLink
+          v-if="sessionStore.hasCapability('users:write')"
+          class="action-link action-link--primary"
+          :to="{ name: 'user-create' }"
+        >
+          {{ messages.common.create }}
         </RouterLink>
       </div>
     </header>
@@ -178,11 +182,23 @@ onMounted(() => loadUsers(1))
                 </ElTag>
               </template>
             </ElTableColumn>
-            <ElTableColumn :label="copy.action" width="115" fixed="right">
+            <ElTableColumn :label="copy.action" min-width="230" fixed="right">
               <template #default="scope">
-                <RouterLink :to="{ name: 'user-detail', params: { userId: scope.row.id } }">
-                  <ElButton link type="primary">{{ messages.common.view }}</ElButton>
-                </RouterLink>
+                <div class="row-actions">
+                  <RouterLink
+                    class="action-link"
+                    :to="{ name: 'user-detail', params: { userId: scope.row.id } }"
+                  >
+                    {{ messages.common.view }}
+                  </RouterLink>
+                  <RouterLink
+                    v-if="sessionStore.hasCapability('application-access:read')"
+                    class="action-link action-link--primary"
+                    :to="{ name: 'user-authorization', query: { userId: scope.row.id } }"
+                  >
+                    {{ messages.common.authorize }}
+                  </RouterLink>
+                </div>
               </template>
             </ElTableColumn>
           </ElTable>

@@ -1,16 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElMessage } from 'element-plus'
 
 import { useSessionStore } from '@/features/session/session.store'
 import { messages } from '@/locales'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import ApplicationSwitcher from './ApplicationSwitcher.vue'
 
 const copy = messages
+const route = useRoute()
 const router = useRouter()
 const sessionStore = useSessionStore()
 const initials = computed(() => sessionStore.currentUser?.name.slice(0, 1).toUpperCase() || 'A')
+
+function enterApplication(entryUrl: string) {
+  window.location.assign(entryUrl)
+}
+
+async function expireSession() {
+  sessionStore.expire()
+  await router.replace({ name: 'login' })
+}
 
 async function signOut() {
   try {
@@ -25,13 +36,16 @@ async function signOut() {
 <template>
   <div class="console-layout">
     <aside class="console-sidebar" :aria-label="copy.navigation.ariaLabel">
-      <div class="brand-block">
-        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-        <div>
-          <strong>{{ copy.brand.name }}</strong>
-          <small>{{ copy.brand.product }}</small>
-        </div>
-      </div>
+      <ApplicationSwitcher @select="enterApplication" @unauthorized="expireSession">
+        <button type="button" class="brand-block" :aria-label="copy.applicationSwitcher.label">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span>
+            <strong>{{ copy.brand.name }}</strong>
+            <small>{{ copy.brand.product }}</small>
+          </span>
+          <span class="brand-chevron" aria-hidden="true">▾</span>
+        </button>
+      </ApplicationSwitcher>
 
       <nav class="console-nav">
         <RouterLink
@@ -57,7 +71,8 @@ async function signOut() {
         <RouterLink
           v-if="sessionStore.hasCapability('application-access:read')"
           class="nav-item"
-          :to="{ name: 'application-access' }"
+          :class="{ 'nav-item--active': route.name === 'user-application-permissions' }"
+          :to="{ name: 'user-authorization' }"
         >
           <span class="nav-icon" aria-hidden="true">C</span>
           <span>{{ copy.navigation.access }}</span>
@@ -65,7 +80,7 @@ async function signOut() {
         <RouterLink
           v-if="sessionStore.hasCapability('applications:read')"
           class="nav-item"
-          :to="{ name: 'application-data' }"
+          :to="{ name: 'integration-debug' }"
         >
           <span class="nav-icon" aria-hidden="true">D</span>
           <span>{{ copy.navigation.data }}</span>
@@ -120,8 +135,7 @@ async function signOut() {
   gap: var(--space-8);
   padding: var(--space-6) var(--space-4);
   border-right: 1px solid var(--color-border);
-  background: rgb(255 255 255 / 88%);
-  backdrop-filter: blur(1rem);
+  background: var(--color-surface);
 }
 
 .brand-block,
@@ -133,8 +147,26 @@ async function signOut() {
 }
 
 .brand-block {
+  width: 100%;
   gap: var(--space-3);
   padding: 0 var(--space-2);
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.brand-block:focus-visible {
+  border-radius: var(--radius-control);
+  outline: 2px solid var(--color-brand);
+  outline-offset: var(--space-1);
+}
+
+.brand-chevron {
+  margin-left: auto;
+  color: var(--color-text-muted);
 }
 
 .brand-block strong,
@@ -162,7 +194,7 @@ async function signOut() {
   place-content: center;
   gap: 0.15rem;
   border-radius: 0.8rem;
-  background: linear-gradient(145deg, var(--color-brand), var(--color-accent));
+  background: var(--color-brand);
   box-shadow: 0 0.55rem 1.25rem rgb(37 99 235 / 24%);
 }
 
@@ -192,7 +224,8 @@ async function signOut() {
   text-align: left;
 }
 
-.nav-item.router-link-active {
+.nav-item.router-link-active,
+.nav-item--active {
   color: var(--color-brand-strong);
   background: var(--color-brand-soft);
   font-weight: 700;
@@ -210,7 +243,8 @@ async function signOut() {
   font-weight: 800;
 }
 
-.router-link-active .nav-icon {
+.router-link-active .nav-icon,
+.nav-item--active .nav-icon {
   color: #fff;
   background: var(--color-brand);
 }
@@ -237,9 +271,8 @@ async function signOut() {
   justify-content: space-between;
   padding: var(--space-3) var(--space-8);
   border-bottom: 1px solid var(--color-border);
-  background: rgb(245 248 255 / 86%);
+  background: var(--color-surface);
   color: var(--color-text-muted);
-  backdrop-filter: blur(1rem);
 }
 
 .console-header > div:first-child {
@@ -262,7 +295,7 @@ async function signOut() {
   place-items: center;
   border-radius: 0.75rem;
   color: #fff;
-  background: linear-gradient(145deg, var(--color-brand), #60a5fa);
+  background: var(--color-brand);
   font-weight: 800;
 }
 

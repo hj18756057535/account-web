@@ -16,9 +16,26 @@ import {
   checkApplicationConnection,
   previewApplicationDirectory,
   commitApplicationDirectory,
+  getMyApplications,
 } from './account'
 
 describe('account write client', () => {
+  it('reads application entries from the current session without a user identifier', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          { appCode: 'cms-ai', name: 'CMS', entryUrl: 'https://cms.example.test/login' },
+        ]),
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await getMyApplications()).toHaveLength(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/session/applications')
+  })
+
   it('uses the Account origin and write guards for directory checks, preview and commit', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

@@ -17,6 +17,7 @@ import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { messages } from '@/locales'
+import ApplicationEntryLink from './ApplicationEntryLink.vue'
 
 const copy = messages.applications
 const router = useRouter()
@@ -78,9 +79,10 @@ onMounted(loadApplications)
       </div>
       <RouterLink
         v-if="sessionStore.hasCapability('applications:write')"
+        class="action-link action-link--primary"
         :to="{ name: 'application-create' }"
       >
-        <ElButton type="primary">{{ messages.common.createApplication }}</ElButton>
+        {{ messages.common.createApplication }}
       </RouterLink>
     </header>
 
@@ -144,11 +146,17 @@ onMounted(loadApplications)
           </ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn :label="copy.action" width="120" fixed="right">
+      <ElTableColumn :label="copy.action" min-width="260" fixed="right">
         <template #default="scope">
-          <RouterLink :to="{ name: 'application-detail', params: { appCode: scope.row.appCode } }">
-            {{ messages.common.view }}
-          </RouterLink>
+          <div class="row-actions">
+            <RouterLink
+              class="action-link"
+              :to="{ name: 'application-detail', params: { appCode: scope.row.appCode } }"
+            >
+              {{ messages.common.view }}
+            </RouterLink>
+            <ApplicationEntryLink :application="scope.row as ApplicationResponse" />
+          </div>
         </template>
       </ElTableColumn>
     </ElTable>

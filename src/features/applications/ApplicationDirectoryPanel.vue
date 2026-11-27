@@ -254,12 +254,13 @@ onBeforeUnmount(() => generation++)
           <ElTableColumn
             v-if="session.hasCapability('application-access:read')"
             :label="messages.overview.actions"
-            min-width="130"
+            min-width="180"
           >
             <template #default="{ row }">
               <RouterLink
+                class="action-link"
                 :to="{
-                  name: 'application-access',
+                  name: 'user-authorization',
                   query: { appCode: application.appCode, account: row.account },
                 }"
               >

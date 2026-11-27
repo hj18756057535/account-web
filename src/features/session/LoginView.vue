@@ -143,9 +143,7 @@ async function retryConnection() {
   display: grid;
   min-height: 100vh;
   grid-template-columns: minmax(0, 1.05fr) minmax(28rem, 0.95fr);
-  background:
-    radial-gradient(circle at 15% 15%, rgb(96 165 250 / 26%), transparent 35%),
-    radial-gradient(circle at 75% 80%, rgb(8 145 178 / 18%), transparent 28%), #07152f;
+  background: #263244;
 }
 
 .login-story {

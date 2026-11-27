@@ -1,6 +1,12 @@
 import type { Messages } from './types'
 
 export const enUS: Messages = {
+  applicationSwitcher: {
+    label: 'Switch my applications',
+    loading: 'Loading applications…',
+    empty: 'No applications available',
+    retry: 'Unable to load applications. Click to retry.',
+  },
   overview: {
     enabledUsers: 'Enabled users',
     enabledApplications: 'Enabled applications',
@@ -80,6 +86,7 @@ export const enUS: Messages = {
     environment: 'Management Console',
   },
   common: {
+    authorize: 'Authorize',
     retry: 'Reload',
     back: 'Back',
     view: 'View details',
@@ -109,11 +116,11 @@ export const enUS: Messages = {
     invalidField: 'Please check this field.',
   },
   navigation: {
-    data: 'Application data',
+    data: 'Integration diagnostics',
     ariaLabel: 'Main navigation',
     users: 'Users',
     applications: 'Applications',
-    access: 'Access',
+    access: 'User authorization',
     audit: 'Audit logs',
     comingSoon: 'Coming later',
     accessInUserDetail: 'In user details',
@@ -210,6 +217,10 @@ export const enUS: Messages = {
     version: 'Resource version',
   },
   applications: {
+    enter: 'Open application',
+    openInNewTab: 'Open in a new window',
+    entryDisabled: 'The application is disabled or its credential is unavailable',
+    entryUnavailable: 'Configure a valid application entry URL',
     eyebrow: 'Application registry',
     title: 'Applications',
     description:
@@ -234,7 +245,6 @@ export const enUS: Messages = {
     protocolAdminTicket: 'Admin Ticket',
     protocolUserSync: 'User status synchronization',
     protocolDirectory: 'Users, roles and organization directory',
-    cmsPreset: 'Fill local CMS settings',
     secretUsage:
       'This secret is used for OIDC and provider calls. Copy it to account.integration.secret in CMS, restart the main service, then check the connection.',
     protocolMenuPermission: 'Menu permission management',
@@ -315,14 +325,15 @@ export const enUS: Messages = {
       'Passwords are not imported. Account administrator privileges are not granted automatically.',
   },
   access: {
+    sectionTitle: 'Application access and synchronization',
     selectUser: 'Select user',
     searchUser: 'Search account or name',
     notAuthorized: 'Not authorized',
-    waitForSync: 'Menus available after synchronization',
+    waitForSync: 'Configure permissions after sync',
     configureIntegration: 'Configure service URL',
-    title: 'Application access and synchronization',
+    title: 'User authorization',
     description:
-      'Desired and application-confirmed states are separate. Confirmation is effective only when it matches the current version.',
+      'Select a user and grant application access, then configure roles and menus after synchronization is confirmed.',
     desiredStatus: 'Desired status',
     applicationStatus: 'Application status',
     integrationStatus: 'Synchronization status',
@@ -374,24 +385,31 @@ export const enUS: Messages = {
     empty: 'No registered applications',
   },
   menuPermissions: {
-    open: 'Configure menu permissions',
-    title: 'Application menu permissions',
+    back: 'Back to user authorization',
+    user: 'User',
+    application: 'Application',
+    menus: 'Menus and actions',
+    save: 'Save permissions',
+    open: 'Configure permissions',
+    title: 'User role and menu assignments',
     description:
-      'Account-managed permissions are saved as a complete set. Permissions inherited from native application roles remain read-only.',
+      'The application maintains menus and roles. Only this user’s assignments change here; menus inherited from roles are read-only.',
+    roles: 'Assign existing application roles',
     legend: 'Permission source legend',
     managed: 'Managed by Account',
     inherited: 'Inherited, read-only',
-    loadFailed: 'Unable to load menu permissions',
+    loadFailed: 'Unable to load application assignments',
     unavailable:
       'The application permission service is unavailable. Check the application integration and retry.',
     prerequisite:
-      'Enable user access and wait for application synchronization before configuring menu permissions.',
-    unmanageable: 'This application user cannot be managed by Account menu permissions.',
+      'Enable user access and wait for application synchronization before configuring permissions.',
+    unmanageable: 'Account cannot manage permissions for this application user.',
     unsupported: 'The application does not support the current menu permission protocol.',
     invalid: 'The application catalog or submitted permission set does not satisfy the protocol.',
     empty: 'No configurable menus',
-    emptyDescription: 'The application returned an empty permission catalog.',
-    saved: 'Menu permissions saved and confirmed by the application',
+    emptyDescription:
+      'The application has no assignable menus or actions. Role assignments use the roles it provides.',
+    saved: 'Application assignments saved and confirmed',
     saveFailed: 'Save failed. The application permission was not reported as successful.',
     conflict: 'The catalog or user permissions changed. Reload before saving again.',
     reload: 'Reload permissions',
@@ -446,7 +464,7 @@ export const enUS: Messages = {
       APPLICATION_ACCESS_CHANGED: 'Change application access',
       APPLICATION_SYNC_RETRIED: 'Retry application synchronization',
       APPLICATION_SYNC_CONFIRMED: 'Confirm application synchronization',
-      APPLICATION_MENU_PERMISSION_REPLACED: 'Change application menu permissions',
+      APPLICATION_MENU_PERMISSION_REPLACED: 'Change application role and menu assignments',
     },
   },
   errors: {

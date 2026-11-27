@@ -1,12 +1,11 @@
 import { createPinia } from 'pinia'
 import { enableAutoUnmount, flushPromises, shallowMount } from '@vue/test-utils'
-import { createMemoryHistory, createRouter } from 'vue-router'
+import { createMemoryHistory, createRouter, RouterLink } from 'vue-router'
 import { ElButton } from 'element-plus'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as api from '@/api/account'
 import { useSessionStore } from '@/features/session/session.store'
 import { messages, setLocale } from '@/locales'
-import MenuPermissionDialog from './MenuPermissionDialog.vue'
 import UserApplicationAccess from './UserApplicationAccess.vue'
 
 enableAutoUnmount(afterEach)
@@ -33,7 +32,14 @@ function access(): api.ApplicationAccessResponse {
 async function render() {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/', component: UserApplicationAccess }],
+    routes: [
+      { path: '/', component: UserApplicationAccess },
+      {
+        path: '/user-authorization/:userId/applications/:appCode',
+        name: 'user-application-permissions',
+        component: { template: '<div />' },
+      },
+    ],
   })
   await router.push('/')
   const pinia = createPinia()
@@ -70,7 +76,13 @@ describe('application authorization workflow', () => {
     await flushPromises()
     expect(wrapper.text()).toContain(messages.access.notAuthorized)
     expect(grant).not.toHaveBeenCalled()
-    expect(wrapper.findComponent(MenuPermissionDialog).exists()).toBe(false)
+    expect(
+      wrapper
+        .findAllComponents(RouterLink)
+        .some(
+          (link) => (link.props('to') as { name?: string }).name === 'user-application-permissions',
+        ),
+    ).toBe(false)
     const button = wrapper
       .findAllComponents(ElButton)
       .find((item) => item.text() === messages.access.enable)!
@@ -83,10 +95,51 @@ describe('application authorization workflow', () => {
       '',
       expect.any(String),
     )
-    expect(wrapper.findComponent(MenuPermissionDialog).exists()).toBe(false)
+    expect(
+      wrapper
+        .findAllComponents(RouterLink)
+        .some(
+          (link) => (link.props('to') as { name?: string }).name === 'user-application-permissions',
+        ),
+    ).toBe(false)
     await vi.advanceTimersByTimeAsync(2_000)
     await flushPromises()
-    expect(wrapper.getComponent(MenuPermissionDialog).props('autoOpen')).toBe(true)
+    expect(wrapper.vm.$router.currentRoute.value).toMatchObject({
+      name: 'user-application-permissions',
+      params: { userId: 'test-user', appCode: 'cms-ai' },
+    })
+  })
+
+  it('does not navigate to an application hidden by the current selection', async () => {
+    vi.useFakeTimers()
+    const pending: api.ApplicationAccessResponse = {
+      ...access(),
+      desiredStatus: 'enabled',
+      version: 1,
+      integrationStatus: 'pending',
+    }
+    vi.spyOn(api, 'listUserApplicationAccess')
+      .mockResolvedValueOnce([access()])
+      .mockResolvedValue([
+        {
+          ...pending,
+          integrationStatus: 'succeeded',
+          appliedStatus: 'enabled',
+          appliedVersion: 1,
+        },
+      ])
+    vi.spyOn(api, 'changeUserApplicationAccess').mockResolvedValue(pending)
+    const wrapper = await render()
+    await flushPromises()
+    wrapper
+      .findAllComponents(ElButton)
+      .find((item) => item.text() === messages.access.enable)!
+      .vm.$emit('click')
+    await flushPromises()
+    await wrapper.setProps({ appCode: 'another-app' })
+    await vi.advanceTimersByTimeAsync(2_000)
+    await flushPromises()
+    expect(wrapper.vm.$router.currentRoute.value.path).toBe('/')
   })
 
   it('keeps menu permissions unavailable for stale confirmations', async () => {
@@ -102,7 +155,13 @@ describe('application authorization workflow', () => {
     ])
     const wrapper = await render()
     await flushPromises()
-    expect(wrapper.findComponent(MenuPermissionDialog).exists()).toBe(false)
+    expect(
+      wrapper
+        .findAllComponents(RouterLink)
+        .some(
+          (link) => (link.props('to') as { name?: string }).name === 'user-application-permissions',
+        ),
+    ).toBe(false)
   })
 
   it('revokes access without asking for a reason', async () => {

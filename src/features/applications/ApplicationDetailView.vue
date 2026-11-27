@@ -23,6 +23,7 @@ import { ApiError } from '@/api/http'
 import StatePanel from '@/components/StatePanel.vue'
 import { useSessionStore } from '@/features/session/session.store'
 import { formatDate, localizeFeedback, messages } from '@/locales'
+import ApplicationEntryLink from './ApplicationEntryLink.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -203,7 +204,7 @@ onBeforeUnmount(clearSecret)
 
 <template>
   <section class="application-detail" aria-labelledby="application-detail-title">
-    <RouterLink class="back-link" :to="{ name: 'applications' }"
+    <RouterLink class="back-link action-link" :to="{ name: 'applications' }"
       >← {{ messages.common.back }}</RouterLink
     >
     <ElSkeleton v-if="loading" animated :rows="9" />
@@ -238,10 +239,12 @@ onBeforeUnmount(clearSecret)
         </ElTag>
         <RouterLink
           v-if="sessionStore.hasCapability('applications:write')"
+          class="action-link"
           :to="{ name: 'application-edit', params: { appCode: application.appCode } }"
         >
-          <ElButton type="primary" plain>{{ messages.common.edit }}</ElButton>
+          {{ messages.common.edit }}
         </RouterLink>
+        <ApplicationEntryLink :application="application" />
       </header>
 
       <div class="detail-grid">
@@ -338,15 +341,19 @@ onBeforeUnmount(clearSecret)
           >
         </div>
       </section>
-      <div class="actions">
-        <RouterLink :to="{ name: 'application-data', query: { appCode: application.appCode } }">
-          <ElButton type="primary">{{ messages.navigation.data }}</ElButton>
+      <div class="row-actions">
+        <RouterLink
+          class="action-link"
+          :to="{ name: 'integration-debug', query: { appCode: application.appCode } }"
+        >
+          {{ messages.navigation.data }}
         </RouterLink>
         <RouterLink
           v-if="sessionStore.hasCapability('application-access:read')"
-          :to="{ name: 'application-access', query: { appCode: application.appCode } }"
+          class="action-link action-link--primary"
+          :to="{ name: 'user-authorization', query: { appCode: application.appCode } }"
         >
-          <ElButton>{{ messages.navigation.access }}</ElButton>
+          {{ messages.navigation.access }}
         </RouterLink>
       </div>
     </template>
@@ -384,11 +391,12 @@ onBeforeUnmount(clearSecret)
 .detail-heading {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-4);
   padding: var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: linear-gradient(145deg, #fff, var(--color-brand-soft));
+  background: var(--color-surface);
 }
 
 .detail-heading div {

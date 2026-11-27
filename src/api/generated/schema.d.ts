@@ -204,6 +204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/session/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前登录账户可进入的应用
+         * @description 从当前 Session 确定用户，不接受用户 ID。只返回已授权、用户与应用均启用、凭据可用且配置入口的应用； 配置 Provider 的应用还须确认当前准入版本。普通登录用户也可读取自己的列表。 点击 entryUrl 进入应用自身登录入口，不签发旧式 SSO Ticket，不返回 Secret、回调或后端地址。 未登录返回 401，列表为空时返回空数组；响应 no-store。
+         */
+        get: operations["getMyApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/session": {
         parameters: {
             query?: never;
@@ -434,13 +454,13 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 查询已准入用户在目标应用中的菜单权限
-         * @description 仅管理员可调用。用户准入、应用同步、本地身份映射和 menu_permission_v1 capability 均有效时，Account 才会调用应用 Provider；Account 不保存菜单明细。
+         * 查询已准入用户在目标应用中的角色与菜单授权
+         * @description 仅管理员可调用。用户准入、应用同步、本地身份映射和 menu_permission_v1 capability 均有效时，Account 才会调用应用 Provider；Account 不保存权限明细，角色关联按应用返回的角色列表开放。
          */
         get: operations["getUserApplicationMenuPermissions"];
         /**
-         * 整集替换 Account 在目标应用中托管的菜单权限
-         * @description 仅管理员可调用；同一 Idempotency-Key 用于 Account 管理 API 和目标 Provider 的安全重试。 空 selectedCodes 仅清空 Account 托管项，不影响应用原生角色权限。
+         * 更新用户与目标应用已有角色及菜单的授权关联
+         * @description 仅管理员可调用；同一 Idempotency-Key 用于 Account 管理 API 和目标 Provider 的安全重试。 空 selectedCodes 仅清空 Account 托管项，不影响应用原生角色权限。 角色选择省略时不改角色关系，空数组清空应用开放管理的角色关联。 菜单和角色目录由目标应用维护；Account 只转发用户授权关联，不新增、编辑或删除定义。
          */
         put: operations["replaceUserApplicationMenuPermissions"];
         post?: never;
@@ -525,6 +545,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UserApplicationEntry: {
+            /** @description 当前账户已获准进入的应用编码 */
+            appCode: string;
+            /** @description 应用显示名称 */
+            name: string;
+            /**
+             * Format: uri
+             * @description 已登记的 HTTP(S) 应用入口，由应用发起自身登录流程
+             */
+            entryUrl: string;
+        };
         OverviewResponse: {
             /** Format: date-time */
             sampledAt: string;
@@ -791,6 +822,8 @@ export interface components {
             expectedCatalogRevision: string;
             expectedPermissionRevision: string;
             selectedCodes: string[];
+            /** @description 当前用户与应用已提供角色的关联；未提供或 null 时不修改角色，空集合清空可管理范围内的关联 */
+            selectedRoleIds?: string[] | null;
         };
         MenuPermissionResponse: {
             /** Format: int64 */
@@ -802,6 +835,10 @@ export interface components {
             nodes: components["schemas"]["MenuPermissionNode"][];
             selectedCodes: string[];
             inheritedCodes: string[];
+            /** @description 应用提供的已有可关联角色；null 或缺失表示不支持角色关联，非空值时必须同时提供 selectedRoleIds */
+            readonly roles?: components["schemas"]["DirectoryRole"][] | null;
+            /** @description 当前用户在应用可管理范围内的角色关联，所有 ID 均为字符串 */
+            selectedRoleIds?: string[] | null;
         };
         MenuPermissionNode: {
             code: string;
@@ -1403,6 +1440,27 @@ export interface operations {
                 };
             };
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getMyApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 按应用编码排序的当前账户应用入口 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserApplicationEntry"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
     getSession: {

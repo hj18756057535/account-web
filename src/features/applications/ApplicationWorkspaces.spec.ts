@@ -3,8 +3,8 @@ import { enableAutoUnmount, flushPromises, shallowMount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as api from '@/api/account'
-import ApplicationAccessView from './ApplicationAccessView.vue'
-import ApplicationDataView from './ApplicationDataView.vue'
+import UserAuthorizationView from './UserAuthorizationView.vue'
+import ApplicationIntegrationView from './ApplicationIntegrationView.vue'
 import ApplicationDirectoryPanel from './ApplicationDirectoryPanel.vue'
 import UserApplicationAccess from './UserApplicationAccess.vue'
 
@@ -24,7 +24,7 @@ function user(id: string): api.UserResponse {
 }
 
 async function render(path: string, data = false) {
-  const component = data ? ApplicationDataView : ApplicationAccessView
+  const component = data ? ApplicationIntegrationView : UserAuthorizationView
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/', component }],

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ElButton } from 'element-plus'
 import StatePanel from './StatePanel.vue'
 import { messages } from '@/locales'
 </script>
@@ -11,9 +10,9 @@ import { messages } from '@/locales'
       :description="messages.errors.notFoundDescription"
     >
       <template #actions>
-        <RouterLink :to="{ name: 'users' }"
-          ><ElButton type="primary">{{ messages.navigation.users }}</ElButton></RouterLink
-        >
+        <RouterLink class="action-link action-link--primary" :to="{ name: 'users' }">
+          {{ messages.navigation.users }}
+        </RouterLink>
       </template>
     </StatePanel>
   </main>

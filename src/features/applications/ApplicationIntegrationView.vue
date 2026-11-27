@@ -54,8 +54,8 @@ onBeforeUnmount(() => generation++)
 </script>
 
 <template>
-  <section class="data-page">
-    <h1 class="page-title">{{ messages.navigation.data }}</h1>
+  <section class="data-page" aria-labelledby="integration-debug-title">
+    <h1 id="integration-debug-title" class="page-title">{{ messages.navigation.data }}</h1>
     <ElSkeleton v-if="loading" :rows="5" animated />
     <template v-else>
       <ElAlert v-if="failed" :title="messages.errors.generic" type="error" :closable="false" />
@@ -75,15 +75,17 @@ onBeforeUnmount(() => generation++)
         <div class="data-actions">
           <RouterLink
             v-if="session.hasCapability('application-access:read')"
-            :to="{ name: 'application-access', query: { appCode: application.appCode } }"
+            class="action-link action-link--primary"
+            :to="{ name: 'user-authorization', query: { appCode: application.appCode } }"
           >
-            <ElButton type="primary">{{ messages.navigation.access }}</ElButton>
+            {{ messages.navigation.access }}
           </RouterLink>
           <RouterLink
             v-if="session.hasCapability('applications:write')"
+            class="action-link"
             :to="{ name: 'application-edit', params: { appCode: application.appCode } }"
           >
-            <ElButton>{{ messages.common.edit }}</ElButton>
+            {{ messages.common.edit }}
           </RouterLink>
         </div>
         <ApplicationDirectoryPanel

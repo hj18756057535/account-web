@@ -82,8 +82,8 @@ onBeforeUnmount(() => generation++)
 </script>
 
 <template>
-  <section class="access-page">
-    <h1 class="page-title">{{ messages.access.title }}</h1>
+  <section class="access-page" aria-labelledby="user-authorization-title">
+    <h1 id="user-authorization-title" class="page-title">{{ messages.access.title }}</h1>
     <label class="user-picker">
       <span>{{ messages.access.selectUser }}</span>
       <ElSelect

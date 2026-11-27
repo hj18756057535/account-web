@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ElButton } from 'element-plus'
 import StatePanel from './StatePanel.vue'
 import { messages } from '@/locales'
 </script>
@@ -11,9 +10,9 @@ import { messages } from '@/locales'
     tone="warning"
   >
     <template #actions>
-      <RouterLink :to="{ name: 'users' }"
-        ><ElButton>{{ messages.common.back }}</ElButton></RouterLink
-      >
+      <RouterLink class="action-link" :to="{ name: 'users' }">
+        {{ messages.common.back }}
+      </RouterLink>
     </template>
   </StatePanel>
 </template>

@@ -240,7 +240,7 @@ onUnmounted(() => {
             </ElTableColumn>
             <ElTableColumn :label="messages.users.action" width="110" fixed="right">
               <template #default="scope">
-                <ElButton link type="primary" @click="openDetail(scope.row.id)">
+                <ElButton plain type="primary" @click="openDetail(scope.row.id)">
                   {{ messages.common.view }}
                 </ElButton>
               </template>

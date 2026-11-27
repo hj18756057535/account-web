@@ -112,7 +112,9 @@ onMounted(loadUser)
 
 <template>
   <section class="detail-page" aria-labelledby="detail-title">
-    <RouterLink class="back-link" :to="{ name: 'users' }">← {{ messages.common.back }}</RouterLink>
+    <RouterLink class="back-link action-link" :to="{ name: 'users' }">
+      ← {{ messages.common.back }}
+    </RouterLink>
 
     <ElSkeleton v-if="loading" animated :rows="8" />
 
@@ -158,10 +160,10 @@ onMounted(loadUser)
         </ElTag>
         <RouterLink
           v-if="sessionStore.hasCapability('users:write')"
-          class="detail-edit"
+          class="detail-edit action-link"
           :to="{ name: 'user-edit', params: { userId: user.id } }"
         >
-          <ElButton type="primary" plain>{{ messages.common.edit }}</ElButton>
+          {{ messages.common.edit }}
         </RouterLink>
       </header>
 
@@ -236,9 +238,10 @@ onMounted(loadUser)
 
       <RouterLink
         v-if="sessionStore.hasCapability('application-access:read')"
-        :to="{ name: 'application-access', query: { userId: user.id } }"
+        class="action-link action-link--primary"
+        :to="{ name: 'user-authorization', query: { userId: user.id } }"
       >
-        <ElButton type="primary">{{ messages.access.title }}</ElButton>
+        {{ messages.access.title }}
       </RouterLink>
     </template>
   </section>
@@ -264,7 +267,7 @@ onMounted(loadUser)
   padding: var(--space-6);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: linear-gradient(145deg, #fff, var(--color-brand-soft));
+  background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
 
@@ -279,7 +282,7 @@ onMounted(loadUser)
   place-items: center;
   border-radius: 1.2rem;
   color: #fff;
-  background: linear-gradient(145deg, var(--color-brand), var(--color-accent));
+  background: var(--color-brand);
   font-size: 1.5rem;
   font-weight: 900;
 }

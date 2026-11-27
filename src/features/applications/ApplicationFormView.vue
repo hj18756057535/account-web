@@ -46,18 +46,6 @@ const form = reactive<ApplicationForm>({
   defaultTenantCode: 'default',
 })
 
-function fillCmsPreset() {
-  Object.assign(form, {
-    appCode: editing.value ? form.appCode : form.appCode || 'cms-ai',
-    name: form.name || 'CMS',
-    entryUrl: form.entryUrl || 'http://localhost:8850/api-test/main/login/account',
-    ssoCallbackUrl:
-      form.ssoCallbackUrl || 'http://localhost:8850/api-test/main/login/account/callback',
-    notifyBaseUrl: form.notifyBaseUrl || 'http://localhost:9101',
-    defaultTenantCode: form.defaultTenantCode || 'default',
-  })
-}
-
 watch(
   form,
   () => {
@@ -220,7 +208,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="application-form-page" aria-labelledby="application-form-title">
     <RouterLink
-      class="back-link"
+      class="back-link action-link"
       :to="
         editing
           ? { name: 'application-detail', params: { appCode: route.params.appCode } }
@@ -266,9 +254,6 @@ onBeforeUnmount(() => {
     </StatePanel>
 
     <form v-else class="application-form" novalidate @submit.prevent="submit">
-      <div class="wide-field">
-        <ElButton :disabled="submitting" @click="fillCmsPreset">{{ copy.cmsPreset }}</ElButton>
-      </div>
       <label>
         <span>{{ copy.appCode }}</span>
         <ElInput v-model="form.appCode" :disabled="editing" maxlength="64" />
@@ -316,13 +301,14 @@ onBeforeUnmount(() => {
       <p v-if="failed && !conflict" class="form-error" role="alert">{{ copy.saveFailed }}</p>
       <footer>
         <RouterLink
+          class="action-link"
           :to="
             editing
               ? { name: 'application-detail', params: { appCode: route.params.appCode } }
               : { name: 'applications' }
           "
         >
-          <ElButton>{{ messages.common.cancel }}</ElButton>
+          {{ messages.common.cancel }}
         </RouterLink>
         <ElButton type="primary" native-type="submit" :loading="submitting">
           {{ submitting ? messages.common.saving : messages.common.save }}

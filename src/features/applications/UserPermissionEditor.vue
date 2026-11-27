@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { ElButton, ElDialog, ElSkeleton, ElTag, ElTree, type TreeInstance } from 'element-plus'
+import {
+  ElButton,
+  ElOption,
+  ElSelect,
+  ElSkeleton,
+  ElTag,
+  ElTree,
+  type TreeInstance,
+} from 'element-plus'
 
 import {
   getUserApplicationMenuPermissions,
   replaceUserApplicationMenuPermissions,
-  type ApplicationAccessResponse,
   type MenuPermissionNode,
   type MenuPermissionResponse,
 } from '@/api/account'
@@ -22,13 +29,11 @@ interface PermissionTreeNode extends MenuPermissionNode {
 
 const props = defineProps<{
   userId: string
-  access: ApplicationAccessResponse
-  autoOpen?: boolean
+  appCode: string
 }>()
-const emit = defineEmits<{ authError: [error: ApiError]; opened: [] }>()
+const emit = defineEmits<{ authError: [error: ApiError] }>()
 const sessionStore = useSessionStore()
 const copy = messages.menuPermissions
-const visible = ref(false)
 const loading = ref(false)
 const saving = ref(false)
 const failed = ref(false)
@@ -37,6 +42,7 @@ const saved = ref(false)
 const errorMessage = ref('')
 const snapshot = ref<MenuPermissionResponse>()
 const checkedCodes = ref<string[]>([])
+const selectedRoleIds = ref<string[]>([])
 const treeRef = ref<TreeInstance>()
 const treeGeneration = ref(0)
 const requestKey = ref('')
@@ -67,25 +73,22 @@ const treeData = computed(() => {
 function applySnapshot(value: MenuPermissionResponse) {
   snapshot.value = value
   checkedCodes.value = [...new Set([...value.selectedCodes, ...value.inheritedCodes])]
+  selectedRoleIds.value = [...(value.selectedRoleIds ?? [])]
   treeGeneration.value++
-}
-
-async function open() {
-  visible.value = true
-  emit('opened')
-  await load()
 }
 
 async function load() {
   const current = ++generation
   loading.value = true
+  saving.value = false
   failed.value = false
   conflict.value = false
   saved.value = false
   errorMessage.value = ''
   requestKey.value = ''
+  snapshot.value = undefined
   try {
-    const result = await getUserApplicationMenuPermissions(props.userId, props.access.appCode)
+    const result = await getUserApplicationMenuPermissions(props.userId, props.appCode)
     if (current === generation) applySnapshot(result)
   } catch (error) {
     if (current !== generation || handleAuthError(error)) return
@@ -99,7 +102,6 @@ async function load() {
 
 function handleAuthError(error: unknown) {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-    visible.value = false
     emit('authError', error)
     return true
   }
@@ -108,6 +110,14 @@ function handleAuthError(error: unknown) {
 
 function updateChecked(_node: PermissionTreeNode, state: { checkedKeys: Array<string | number> }) {
   checkedCodes.value = state.checkedKeys.map(String)
+  requestKey.value = ''
+  saved.value = false
+}
+
+function updateRoles(value: unknown) {
+  if (!Array.isArray(value) || value.some((id) => typeof id !== 'string')) return
+  selectedRoleIds.value = value as string[]
+  requestKey.value = ''
   saved.value = false
 }
 
@@ -136,12 +146,13 @@ async function save() {
   try {
     const result = await replaceUserApplicationMenuPermissions(
       props.userId,
-      props.access.appCode,
+      props.appCode,
       {
         expectedAccessVersion: snapshot.value.accessVersion,
         expectedCatalogRevision: snapshot.value.catalogRevision,
         expectedPermissionRevision: snapshot.value.permissionRevision,
         selectedCodes: selectedForSave(),
+        ...(snapshot.value.roles ? { selectedRoleIds: [...selectedRoleIds.value] } : {}),
       },
       sessionStore.csrfToken,
       idempotencyKey,
@@ -170,36 +181,40 @@ function permissionError(error: unknown) {
   return copy.unavailable
 }
 
-function close() {
-  generation++
-  visible.value = false
-  loading.value = false
-  saving.value = false
-}
-
 watch(
-  () => props.autoOpen,
-  (value) => {
-    if (value) void open()
-  },
+  () => [props.userId, props.appCode],
+  () => void load(),
   { immediate: true },
 )
 onBeforeUnmount(() => generation++)
 </script>
 
 <template>
-  <ElButton type="primary" plain @click="open">{{ copy.open }}</ElButton>
-  <ElDialog
-    v-model="visible"
-    :title="copy.title"
-    width="min(46rem, calc(100vw - 2rem))"
-    :close-on-click-modal="!saving"
-    destroy-on-close
-    @closed="close"
-  >
-    <div class="permission-dialog" :aria-busy="loading || saving">
-      <p>{{ copy.description }}</p>
+  <section class="permission-editor" :aria-busy="loading || saving">
+    <div class="permission-content">
+      <p class="permission-intro">{{ copy.description }}</p>
+      <label v-if="snapshot?.roles" class="role-assignments">
+        <span>{{ copy.roles }}</span>
+        <ElSelect
+          :model-value="selectedRoleIds"
+          multiple
+          filterable
+          :disabled="loading || saving"
+          @update:model-value="updateRoles"
+        >
+          <ElOption
+            v-for="role in snapshot.roles"
+            :key="role.localRoleId"
+            :value="role.localRoleId"
+            :label="role.name || role.code || role.localRoleId"
+            :disabled="
+              role.status !== 'enabled' && !snapshot.selectedRoleIds?.includes(role.localRoleId)
+            "
+          />
+        </ElSelect>
+      </label>
       <div class="legend" :aria-label="copy.legend">
+        <h2>{{ copy.menus }}</h2>
         <ElTag type="primary">{{ copy.managed }}</ElTag>
         <ElTag type="info">{{ copy.inherited }}</ElTag>
       </div>
@@ -249,31 +264,44 @@ onBeforeUnmount(() => generation++)
       </p>
       <p v-if="saved" class="feedback success" role="status">{{ copy.saved }}</p>
     </div>
-    <template #footer>
-      <ElButton :disabled="saving" @click="visible = false">{{ messages.common.cancel }}</ElButton>
+    <footer class="permission-actions">
       <ElButton v-if="conflict" :disabled="saving" @click="load">{{ copy.reload }}</ElButton>
       <ElButton
-        v-if="snapshot && snapshot.nodes.length"
+        v-if="snapshot && (snapshot.nodes.length || snapshot.roles)"
         type="primary"
         :loading="saving"
         :disabled="loading || conflict"
         @click="save"
       >
-        {{ saving ? messages.common.saving : messages.common.save }}
+        {{ saving ? messages.common.saving : copy.save }}
       </ElButton>
-    </template>
-  </ElDialog>
+    </footer>
+  </section>
 </template>
 
 <style scoped>
-.permission-dialog {
+.permission-editor,
+.permission-content {
   display: grid;
   gap: var(--space-4);
 }
 
-.permission-dialog > p {
+.permission-intro {
   margin: 0;
   color: var(--color-text-muted);
+}
+
+.role-assignments {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-muted);
+}
+
+.role-assignments .el-select {
+  width: 100%;
 }
 
 .legend,
@@ -284,8 +312,14 @@ onBeforeUnmount(() => generation++)
   gap: var(--space-2);
 }
 
+.legend h2 {
+  margin: 0 auto 0 0;
+  font-size: 1rem;
+}
+
 .permission-tree {
-  max-height: min(32rem, 55vh);
+  min-height: 22rem;
+  max-height: max(24rem, calc(100vh - 24rem));
   padding: var(--space-3);
   overflow: auto;
   border: 1px solid var(--color-border);
@@ -298,13 +332,29 @@ onBeforeUnmount(() => generation++)
 
 .feedback {
   margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
 }
 
-.danger {
+.feedback.danger {
   color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
-.success {
+.feedback.success {
   color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.permission-actions {
+  position: sticky;
+  z-index: 1;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 </style>

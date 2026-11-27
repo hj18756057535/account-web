@@ -4,13 +4,13 @@
   --color-brand-soft: #eaf1ff;
   --color-accent: #0891b2;
   --color-accent-soft: #e6f9fc;
-  --color-canvas: #f5f8ff;
+  --color-canvas: #f5f6f8;
   --color-surface: #fff;
-  --color-surface-muted: #f8faff;
+  --color-surface-muted: #f7f8fa;
   --color-text: #172033;
   --color-text-muted: #5d6b85;
-  --color-border: #dbe5f5;
-  --color-border-strong: #c5d5ee;
+  --color-border: #dee2e8;
+  --color-border-strong: #c9d0d9;
   --color-success: #15803d;
   --color-success-soft: #eaf8ef;
   --color-warning: #b45309;
@@ -28,8 +28,8 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
   --space-10: 2.5rem;
-  --shadow-float: 0 1.5rem 4rem rgb(37 99 235 / 14%);
-  --shadow-card: 0 1rem 2.5rem rgb(37 99 235 / 10%);
+  --shadow-float: 0 1.5rem 4rem rgb(23 32 51 / 10%);
+  --shadow-card: 0 1rem 2.5rem rgb(23 32 51 / 6%);
   --sidebar-width: 16rem;
   --content-max-width: 92rem;
 }
